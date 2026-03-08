@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marapulse — Mockups v5 (Chameleon)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #FFFFFF;
+    --bg: #FAFAFA;
+    --ink: #0F0F0F;
+    --ink-2: #666666;
+    --ink-3: #999999;
+    --ink-4: #CCCCCC;
+    --ink-5: #E8E8E8;
+    --ink-6: #F2F2F2;
+    --r: 8px;
+    --r-lg: 12px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --marapulse: #E35336;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--ink-6); color: var(--ink); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+
+  nav {
+    background: var(--white); border-bottom: 1px solid var(--ink-5);
+    padding: 0 32px; display: flex; align-items: center;
+    justify-content: space-between; height: 52px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 16px; font-weight: 800; color: var(--ink); letter-spacing: -0.04em; }
+  .logo span { color: var(--marapulse); }
+  .tabs { display: flex; height: 52px; }
+  .tab {
+    padding: 0 15px; height: 100%; font-size: 13px; font-weight: 500;
+    color: var(--ink-3); cursor: pointer; border: none; background: none;
+    display: flex; align-items: center; border-bottom: 2px solid transparent;
+    transition: all 0.15s; font-family: var(--font);
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.on { color: var(--ink); border-bottom-color: var(--ink); }
+
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 40px 24px; }
+  .lbl { font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 20px; }
+  .row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 56px; }
+  .pane { display: none; } .pane.on { display: block; }
+
+  /* Chrome */
+  .chr { background: var(--bg); border-radius: 12px 12px 0 0; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--ink-5); border-bottom: none; }
+  .d { width: 10px; height: 10px; border-radius: 50%; }
+  .dr { background: #FF5F57; } .dy { background: #FEBC2E; } .dg { background: #28C840; }
+  .url { flex: 1; background: var(--white); border-radius: 6px; padding: 5px 12px; font-size: 11px; color: var(--ink-3); text-align: center; border: 1px solid var(--ink-5); }
+
+  /* Phone */
+  .phone { width: 380px; flex-shrink: 0; }
+  .phone-sm { width: 320px; }
+  .vp { background: var(--white); min-height: 620px; position: relative; border-radius: 0 0 12px 12px; overflow: hidden; border: 1px solid var(--ink-5); border-top: none; }
+  .ghost { padding: 20px; opacity: 0.25; }
+  .sk { background: var(--ink-6); border-radius: 3px; height: 12px; margin-bottom: 9px; }
+  .sk-s { width: 55%; } .sk-m { width: 78%; } .sk-l { width: 92%; }
+  .sk-b { height: 56px; margin-bottom: 14px; border-radius: 6px; }
+
+  /* Client label */
+  .client-label {
+    text-align: center; padding: 10px; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3);
+    background: var(--white); border-radius: 8px; margin-bottom: 8px;
+  }
+
+  /* Trigger */
+  .trig {
+    position: absolute; bottom: 20px; right: 20px;
+    width: 48px; height: 48px; border-radius: 50%;
+    color: #fff; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; z-index: 10;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .trig:hover { transform: scale(1.08); }
+  .trig.x { background: var(--ink) !important; box-shadow: 0 4px 14px rgba(0,0,0,0.15) !important; }
+  .trig svg { width: 20px; height: 20px; }
+
+  /* Panel */
+  .pan {
+    position: absolute; bottom: 78px; right: 12px;
+    width: 340px; max-height: 510px;
+    background: var(--white); border-radius: var(--r-lg);
+    box-shadow: 0 12px 48px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden; display: flex; flex-direction: column; z-index: 20;
+  }
+  .pan-h { padding: 20px 20px 14px; }
+  .pan-h h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.04em; color: var(--ink); }
+  .pan-h p { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+
+  .sbox {
+    margin: 0 20px; padding: 9px 12px 9px 34px; border: 1px solid var(--ink-5);
+    border-radius: var(--r); font-size: 12px; width: calc(100% - 40px);
+    outline: none; font-family: var(--font); color: var(--ink);
+    background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") 10px center no-repeat;
+    transition: border-color 0.15s;
+  }
+  .sbox:focus { border-color: var(--ink); }
+
+  .cps { display: flex; gap: 5px; padding: 10px 20px 4px; overflow-x: auto; align-items: center; }
+  .cp {
+    padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600;
+    border: 1px solid var(--ink-5); background: var(--white);
+    color: var(--ink-3); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .cp:hover { border-color: var(--ink-4); color: var(--ink-2); }
+  .cp.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .lst { flex: 1; overflow-y: auto; }
+
+  /* Item */
+  .it { display: flex; gap: 12px; padding: 12px 20px; cursor: pointer; transition: background 0.1s; align-items: flex-start; }
+  .it:hover { background: var(--bg); }
+  .uv {
+    display: flex; flex-direction: column; align-items: center;
+    min-width: 38px; padding: 6px 0; border: 1.5px solid var(--ink-5);
+    border-radius: var(--r); font-size: 13px; font-weight: 700;
+    color: var(--ink-3); transition: all 0.15s; flex-shrink: 0;
+    gap: 1px; cursor: pointer; background: var(--white);
+  }
+  /* voted state uses client accent - set via inline style */
+  .uv svg { width: 13px; height: 13px; }
+  .it-b { flex: 1; min-width: 0; }
+  .it-t { font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; line-height: 1.35; }
+  .it-d { font-size: 12px; color: var(--ink-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .it-m { display: flex; gap: 7px; align-items: center; margin-top: 6px; }
+
+  .pl { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 99px; }
+  .pl-n { background: #EFF6FF; color: #1D4ED8; }
+  .pl-r { background: #FEF9C3; color: #854D0E; }
+  .pl-p { background: #F3E8FF; color: #7C3AED; }
+  .pl-i { background: #FFF7ED; color: #C2410C; }
+  .pl-d { background: #ECFDF5; color: #059669; }
+  .rep { font-size: 11px; color: var(--ink-4); display: flex; align-items: center; gap: 3px; }
+  .rep svg { width: 11px; height: 11px; }
+
+  .pan-f { padding: 10px 20px; border-top: 1px solid var(--ink-5); display: flex; justify-content: space-between; align-items: center; }
+  .cta {
+    background: var(--ink); color: #fff; border: none;
+    padding: 8px 16px; border-radius: var(--r); font-size: 12px;
+    font-weight: 600; cursor: pointer; font-family: var(--font);
+    transition: background 0.15s;
+  }
+  .cta:hover { background: #333; }
+  .bdg { font-size: 10px; color: var(--ink-4); text-decoration: none; }
+  .bdg:hover { color: var(--marapulse); }
+
+  /* Detail */
+  .dtop { padding: 12px 20px; border-bottom: 1px solid var(--ink-5); display: flex; align-items: center; gap: 8px; }
+  .bk { background: none; border: none; cursor: pointer; display: flex; color: var(--ink-3); padding: 4px; border-radius: 6px; }
+  .bk:hover { background: var(--bg); color: var(--ink); }
+  .dcon { padding: 20px; overflow-y: auto; flex: 1; }
+  .dh { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.25; }
+  .dp { font-size: 13px; color: var(--ink-2); margin-top: 8px; line-height: 1.6; }
+  .dimg { margin-top: 12px; border-radius: var(--r); background: var(--bg); height: 90px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: 11px; border: 1px solid var(--ink-5); }
+  .vrow { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--ink-5); }
+  .vlg {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: var(--r);
+    border: 1.5px solid var(--ink-5); background: var(--white);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    color: var(--ink-3); transition: all 0.15s; font-family: var(--font);
+  }
+  .vlg svg { width: 14px; height: 14px; }
+
+  /* Thread */
+  .thr { margin-top: 16px; }
+  .thr-l { font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .msg { padding: 10px 0; } .msg + .msg { border-top: 1px solid var(--ink-6); }
+  .mh { display: flex; align-items: center; gap: 6px; }
+  .mav { width: 22px; height: 22px; border-radius: 50%; background: var(--ink-6); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--ink-2); }
+  .mav-t { background: var(--ink); color: #fff; }
+  .mn { font-size: 12px; font-weight: 600; }
+  .mt-b { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: var(--ink); color: #fff; }
+  .mti { font-size: 11px; color: var(--ink-4); }
+  .mtx { font-size: 12px; margin-top: 3px; padding-left: 28px; color: var(--ink-2); line-height: 1.5; }
+
+  .cin { width: 100%; padding: 9px 12px; border: 1.5px solid var(--ink-5); border-radius: var(--r); font-size: 12px; font-family: var(--font); outline: none; }
+  .cin:focus { border-color: var(--ink); }
+  .vhint { font-size: 10px; color: var(--ink-4); margin-top: 3px; text-align: right; }
+
+  /* Verify */
+  .vcard { background: var(--bg); border-radius: var(--r-lg); padding: 24px 20px; text-align: center; }
+  .vcard h3 { font-size: 16px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+  .vcard p { font-size: 12px; color: var(--ink-2); margin-bottom: 18px; }
+  .vrow2 { display: flex; gap: 8px; }
+  .vem { flex: 1; padding: 9px 12px; border: 1.5px solid var(--ink-5); border-radius: var(--r); font-size: 13px; font-family: var(--font); outline: none; }
+  .vem:focus { border-color: var(--ink); }
+  .vbtn { background: var(--ink); color: #fff; border: none; padding: 9px 14px; border-radius: var(--r); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: var(--font); }
+  .crow { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+  .cb { width: 40px; height: 48px; text-align: center; border: 1.5px solid var(--ink-5); border-radius: var(--r); font-size: 20px; font-weight: 800; font-family: var(--font); outline: none; color: var(--ink); }
+  .cb.has { border-color: var(--ink); background: var(--bg); }
+  .rsnd { font-size: 11px; color: var(--ink-3); margin-top: 12px; }
+  .rsnd a { color: var(--ink); text-decoration: underline; font-weight: 600; }
+
+  /* Form */
+  .farea { padding: 20px; flex: 1; overflow-y: auto; }
+  .fg { margin-bottom: 16px; }
+  .fgl { font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block; }
+  .fi { width: 100%; padding: 9px 12px; border: 1.5px solid var(--ink-5); border-radius: var(--r); font-size: 13px; font-family: var(--font); outline: none; background: var(--white); }
+  .fi:focus { border-color: var(--ink); }
+  .fi-ta { resize: vertical; min-height: 72px; }
+  .dz { border: 2px dashed var(--ink-5); border-radius: var(--r); padding: 18px; text-align: center; color: var(--ink-3); font-size: 12px; cursor: pointer; }
+  .dz:hover { border-color: var(--ink-4); color: var(--ink-2); }
+  .ffoot { padding: 12px 20px; border-top: 1px solid var(--ink-5); display: flex; gap: 8px; justify-content: flex-end; }
+  .gbtn { padding: 8px 16px; border-radius: var(--r); font-size: 12px; font-weight: 500; border: 1.5px solid var(--ink-5); background: var(--white); cursor: pointer; font-family: var(--font); color: var(--ink-2); }
+
+  /* Board */
+  .brd { flex: 1; min-width: 580px; background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+  .abar { background: var(--ink); color: rgba(255,255,255,0.8); padding: 7px 28px; font-size: 11px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .abar a { color: rgba(255,255,255,0.45); font-size: 11px; text-decoration: none; margin-left: 18px; }
+  .abar a:hover { color: #fff; }
+  .bcon { padding: 56px 64px 40px; background: var(--white); min-height: 520px; }
+  .btop { margin-bottom: 44px; }
+  .bh { font-size: 36px; font-weight: 900; letter-spacing: -0.05em; line-height: 1.15; }
+  .bsub { font-size: 15px; color: var(--ink-3); margin-top: 8px; }
+  .bcta-row { margin-top: 20px; }
+  .bfs { display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; }
+  .bi { padding: 10px 14px 10px 36px; border: 1.5px solid var(--ink-5); border-radius: var(--r); font-size: 13px; width: 240px; font-family: var(--font); outline: none; background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") 11px center no-repeat; }
+  .bs2 { padding: 10px 14px; border: 1.5px solid var(--ink-5); border-radius: var(--r); font-size: 13px; font-family: var(--font); background: var(--white); cursor: pointer; }
+  .br { display: flex; gap: 18px; padding: 22px 0; align-items: flex-start; border-bottom: 1px solid var(--ink-6); }
+  .br:last-of-type { border-bottom: none; }
+  .br:hover .del { opacity: 1; }
+  .brb { flex: 1; min-width: 0; }
+  .brt { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+  .brd2 { font-size: 14px; color: var(--ink-3); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .brm { display: flex; gap: 12px; align-items: center; margin-top: 10px; }
+  .asel { font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1.5px solid var(--ink-5); background: var(--white); cursor: pointer; font-family: var(--font); font-weight: 600; color: var(--ink-2); }
+  .del { font-size: 12px; color: #DC2626; background: none; border: none; cursor: pointer; font-weight: 600; opacity: 0; transition: opacity 0.15s; font-family: var(--font); }
+  .ctag { font-size: 12px; color: var(--ink-3); }
+
+  /* Notes */
+  .notes { flex: 1; min-width: 260px; max-width: 320px; background: var(--white); border-radius: var(--r-lg); padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); align-self: flex-start; position: sticky; top: 72px; }
+  .notes h3 { font-size: 14px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .notes ul { list-style: none; }
+  .notes li { font-size: 12px; color: var(--ink-2); padding: 5px 0; border-bottom: 1px solid var(--ink-6); line-height: 1.55; }
+  .notes li:last-child { border-bottom: none; }
+  .notes strong { color: var(--ink); }
+
+  /* Chameleon demo */
+  .chameleon-grid { display: flex; gap: 20px; flex-wrap: wrap; }
+  .demo-col { display: flex; flex-direction: column; gap: 8px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><span>Mara</span>feed</div>
+  <div class="tabs">
+    <button class="tab on" onclick="go('chameleon',this)">Chameleon Demo</button>
+    <button class="tab" onclick="go('list',this)">Widget List</button>
+    <button class="tab" onclick="go('detail',this)">Detail</button>
+    <button class="tab" onclick="go('verify',this)">Verify</button>
+    <button class="tab" onclick="go('new',this)">New Suggestion</button>
+    <button class="tab" onclick="go('board',this)">Board (Admin)</button>
+  </div>
+</nav>
+
+<!-- 1 CHAMELEON DEMO -->
+<div class="pane on" id="p-chameleon"><div class="wrap">
+  <p class="lbl">1 / Chameleon — Same widget, 3 different brands</p>
+  <div class="row">
+    <div class="chameleon-grid">
+
+      <!-- BLUE CLIENT -->
+      <div class="demo-col">
+        <div class="client-label">Acme · <span style="color:#2563EB">#2563EB</span></div>
+        <div class="phone phone-sm">
+          <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">app.acme.com</div></div>
+          <div class="vp" style="min-height:580px">
+            <div class="ghost"><div class="sk sk-l"></div><div class="sk sk-m"></div><div class="sk sk-s"></div><div style="height:10px"></div><div class="sk sk-b"></div><div class="sk sk-l"></div><div class="sk sk-m"></div></div>
+            <div class="pan" style="width:290px;bottom:72px;right:10px;max-height:440px">
+              <div class="pan-h"><h2>Feedback</h2><p>Suggest and vote on what we build next</p></div>
+              <div class="lst">
+                <div class="it"><div class="uv" style="background:#2563EB;color:#fff;border-color:#2563EB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>42</div><div class="it-b"><div class="it-t">Dark mode support</div><div class="it-m"><span class="pl pl-p">Planned</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>12</span></div></div></div>
+                <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>33</div><div class="it-b"><div class="it-t">Merge duplicates</div><div class="it-m"><span class="pl pl-i">In Progress</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>8</span></div></div></div>
+                <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>28</div><div class="it-b"><div class="it-t">Export to CSV</div><div class="it-m"><span class="pl pl-r">Under Review</span></div></div></div>
+              </div>
+              <div class="pan-f"><a class="bdg" href="#">Powered by Marapulse</a><button class="cta">+ New</button></div>
+            </div>
+            <button class="trig" style="background:#2563EB;box-shadow:0 4px 14px rgba(37,99,235,0.3);width:46px;height:46px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GREEN CLIENT -->
+      <div class="demo-col">
+        <div class="client-label">Plantify · <span style="color:#059669">#059669</span></div>
+        <div class="phone phone-sm">
+          <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">plantify.io/dashboard</div></div>
+          <div class="vp" style="min-height:580px">
+            <div class="ghost"><div class="sk sk-l"></div><div class="sk sk-m"></div><div class="sk sk-s"></div><div style="height:10px"></div><div class="sk sk-b"></div><div class="sk sk-l"></div><div class="sk sk-m"></div></div>
+            <div class="pan" style="width:290px;bottom:72px;right:10px;max-height:440px">
+              <div class="pan-h"><h2>Ideas</h2><p>Tell us what you'd love to see</p></div>
+              <div class="lst">
+                <div class="it"><div class="uv" style="background:#059669;color:#fff;border-color:#059669"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>89</div><div class="it-b"><div class="it-t">Watering reminders</div><div class="it-m"><span class="pl pl-d">Done</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>24</span></div></div></div>
+                <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>52</div><div class="it-b"><div class="it-t">Plant journal photos</div><div class="it-m"><span class="pl pl-p">Planned</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>15</span></div></div></div>
+                <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>31</div><div class="it-b"><div class="it-t">Seasonal care tips</div><div class="it-m"><span class="pl pl-n">New</span></div></div></div>
+              </div>
+              <div class="pan-f"><a class="bdg" href="#">Powered by Marapulse</a><button class="cta">+ New</button></div>
+            </div>
+            <button class="trig" style="background:#059669;box-shadow:0 4px 14px rgba(5,150,105,0.3);width:46px;height:46px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PURPLE CLIENT -->
+      <div class="demo-col">
+        <div class="client-label">Melodix · <span style="color:#7C3AED">#7C3AED</span></div>
+        <div class="phone phone-sm">
+          <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">melodix.app/home</div></div>
+          <div class="vp" style="min-height:580px">
+            <div class="ghost"><div class="sk sk-l"></div><div class="sk sk-m"></div><div class="sk sk-s"></div><div style="height:10px"></div><div class="sk sk-b"></div><div class="sk sk-l"></div><div class="sk sk-m"></div></div>
+            <div class="pan" style="width:290px;bottom:72px;right:10px;max-height:440px">
+              <div class="pan-h"><h2>Feature Requests</h2><p>What should we build next?</p></div>
+              <div class="lst">
+                <div class="it"><div class="uv" style="background:#7C3AED;color:#fff;border-color:#7C3AED"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>67</div><div class="it-b"><div class="it-t">Collaborative playlists</div><div class="it-m"><span class="pl pl-i">In Progress</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>19</span></div></div></div>
+                <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>45</div><div class="it-b"><div class="it-t">Lyrics display</div><div class="it-m"><span class="pl pl-p">Planned</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>11</span></div></div></div>
+                <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>22</div><div class="it-b"><div class="it-t">Offline mode</div><div class="it-m"><span class="pl pl-r">Under Review</span></div></div></div>
+              </div>
+              <div class="pan-f"><a class="bdg" href="#">Powered by Marapulse</a><button class="cta">+ New</button></div>
+            </div>
+            <button class="trig" style="background:#7C3AED;box-shadow:0 4px 14px rgba(124,58,237,0.3);width:46px;height:46px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h3>Chameleon Principle</h3>
+      <ul>
+        <li><strong>Client's color controls:</strong> trigger button, voted upvote state, trigger shadow tint.</li>
+        <li><strong>Everything else stays monochrome.</strong> Black CTAs, black active chips, black focus, neutral text.</li>
+        <li>The widget feels native to each product while maintaining consistent UX structure.</li>
+        <li>Client configures: accent color, board title, subtitle. That's it.</li>
+        <li><strong>"Powered by Marapulse"</strong> is the only Marapulse branding inside the widget. Terracota appears only on hover of that link.</li>
+      </ul>
+      <ul style="margin-top:14px">
+        <li>Board title is configurable: "Feedback", "Ideas", "Feature Requests" — whatever fits the client's voice.</li>
+        <li>Subtitle also customizable per board.</li>
+      </ul>
+    </div>
+  </div>
+</div></div>
+
+<!-- 2 LIST (blue client example) -->
+<div class="pane" id="p-list"><div class="wrap">
+  <p class="lbl">2 / Widget — Full List View (Acme · Blue)</p>
+  <div class="row">
+    <div class="phone">
+      <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">app.acme.com/dashboard</div></div>
+      <div class="vp">
+        <div class="ghost"><div class="sk sk-l"></div><div class="sk sk-m"></div></div>
+        <div class="pan">
+          <div class="pan-h"><h2>Feedback</h2><p>Suggest and vote on what we build next</p></div>
+          <input class="sbox" placeholder="Search suggestions..." readonly>
+          <div class="cps"><span class="cp on">All</span><span class="cp">Planned</span><span class="cp">In Progress</span><span class="cp">Done</span></div>
+          <div class="lst">
+            <div class="it"><div class="uv" style="background:#2563EB;color:#fff;border-color:#2563EB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>42</div><div class="it-b"><div class="it-t">Dark mode support</div><div class="it-d">Would love a dark theme for late-night use</div><div class="it-m"><span class="pl pl-p">Planned</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>12</span></div></div></div>
+            <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>33</div><div class="it-b"><div class="it-t">Merge duplicate suggestions</div><div class="it-d">Users submit the same idea often, merging would help</div><div class="it-m"><span class="pl pl-i">In Progress</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>8</span></div></div></div>
+            <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>28</div><div class="it-b"><div class="it-t">Export data to CSV</div><div class="it-d">Need to export feedback data for reporting</div><div class="it-m"><span class="pl pl-r">Under Review</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>4</span></div></div></div>
+            <div class="it"><div class="uv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>15</div><div class="it-b"><div class="it-t">Slack integration</div><div class="it-d">Get notified when new suggestions come in</div><div class="it-m"><span class="pl pl-n">New</span><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>2</span></div></div></div>
+          </div>
+          <div class="pan-f"><a class="bdg" href="#">Powered by Marapulse</a><button class="cta">+ New suggestion</button></div>
+        </div>
+        <button class="trig x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="notes"><h3>Widget List</h3><ul><li>Title + 1 line desc + votes + status + comments.</li><li>Only <strong>voted upvote uses client color</strong>. Everything else monochrome.</li><li>Active filter chip is black, not accent.</li><li>CTA is black. Focus borders are black.</li></ul></div>
+  </div>
+</div></div>
+
+<!-- 3 DETAIL -->
+<div class="pane" id="p-detail"><div class="wrap">
+  <p class="lbl">3 / Suggestion Detail</p>
+  <div class="row">
+    <div class="phone">
+      <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">app.acme.com/dashboard</div></div>
+      <div class="vp">
+        <div class="ghost" style="opacity:0.15"><div class="sk"></div></div>
+        <div class="pan" style="max-height:540px">
+          <div class="dtop"><button class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><span style="font-size:13px;font-weight:600">Suggestion</span></div>
+          <div class="dcon">
+            <span class="pl pl-p" style="margin-bottom:8px;display:inline-block">Planned</span>
+            <div class="dh">Dark mode support</div>
+            <div class="dp">Would love a dark theme for late-night use. My eyes are burning when I use the app after 10pm. Even a simple toggle would be amazing.</div>
+            <div class="dimg">📷 screenshot.png</div>
+            <div class="vrow"><button class="vlg" style="background:#2563EB;color:#fff;border-color:#2563EB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>42 votes</button></div>
+            <div class="thr">
+              <div class="thr-l">12 comments</div>
+              <div class="msg"><div class="mh"><div class="mav">JD</div><span class="mn">Jane D.</span><span class="mti">2d ago</span></div><div class="mtx">Yes please! Dark mode is essential.</div></div>
+              <div class="msg"><div class="mh"><div class="mav mav-t">A</div><span class="mn">Acme Team</span><span class="mt-b">Team</span><span class="mti">1d ago</span></div><div class="mtx">We're on it! Beta in 2 weeks.</div></div>
+              <div class="msg"><div class="mh"><div class="mav">MK</div><span class="mn">Mike K.</span><span class="mti">12h ago</span></div><div class="mtx">Will it auto-switch based on OS preference?</div></div>
+            </div>
+          </div>
+          <div class="pan-f" style="flex-direction:column;gap:5px;align-items:stretch"><input class="cin" placeholder="Add a comment..." readonly><div class="vhint">Verified email required to comment</div></div>
+        </div>
+        <button class="trig x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="notes"><h3>Detail</h3><ul><li>Vote button uses client accent when voted.</li><li>"Team" badge stays black (monochrome system).</li><li>Verify hint at bottom of comment input.</li></ul></div>
+  </div>
+</div></div>
+
+<!-- 4 VERIFY -->
+<div class="pane" id="p-verify"><div class="wrap">
+  <p class="lbl">4 / Email Verification</p>
+  <div class="row">
+    <div class="phone">
+      <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">app.acme.com</div></div>
+      <div class="vp">
+        <div class="ghost" style="opacity:0.15"><div class="sk"></div></div>
+        <div class="pan" style="max-height:330px">
+          <div class="dtop"><button class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><span style="font-size:13px;font-weight:600">Verify your email</span></div>
+          <div style="padding:24px 20px"><div class="vcard"><h3>Almost there!</h3><p>Enter your email to submit and comment.</p><div class="vrow2"><input class="vem" placeholder="you@example.com" readonly><button class="vbtn">Send code</button></div></div></div>
+        </div>
+        <button class="trig x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">app.acme.com</div></div>
+      <div class="vp">
+        <div class="ghost" style="opacity:0.15"><div class="sk"></div></div>
+        <div class="pan" style="max-height:360px">
+          <div class="dtop"><button class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><span style="font-size:13px;font-weight:600">Enter code</span></div>
+          <div style="padding:24px 20px"><div class="vcard"><h3>Check your email</h3><p>We sent a 6-digit code to <strong>jane@example.com</strong></p><div class="crow"><input class="cb has" value="4" readonly><input class="cb has" value="8" readonly><input class="cb has" value="2" readonly><input class="cb" readonly><input class="cb" readonly><input class="cb" readonly></div><div class="rsnd">Didn't get it? <a href="#">Resend code</a></div></div></div>
+        </div>
+        <button class="trig x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- 5 NEW -->
+<div class="pane" id="p-new"><div class="wrap">
+  <p class="lbl">5 / New Suggestion</p>
+  <div class="row">
+    <div class="phone">
+      <div class="chr"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">app.acme.com</div></div>
+      <div class="vp">
+        <div class="ghost" style="opacity:0.15"><div class="sk"></div></div>
+        <div class="pan" style="max-height:510px">
+          <div class="dtop"><button class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><span style="font-size:13px;font-weight:600">New suggestion</span><span style="font-size:11px;color:var(--ink-3);margin-left:auto">jane@example.com ✓</span></div>
+          <div class="farea">
+            <div class="fg"><label class="fgl">Title *</label><input class="fi" placeholder="What would you like to see?" readonly></div>
+            <div class="fg"><label class="fgl">Description</label><textarea class="fi fi-ta" placeholder="Tell us more..." readonly></textarea></div>
+            <div class="fg"><label class="fgl">Category</label><select class="fi" disabled><option>Select a category</option></select></div>
+            <div class="fg"><label class="fgl">Attachment</label><div class="dz">📎 Drop an image or paste from clipboard</div></div>
+          </div>
+          <div class="ffoot"><button class="gbtn">Cancel</button><button class="cta">Submit</button></div>
+        </div>
+        <button class="trig x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="notes"><h3>New Suggestion</h3><ul><li>Verified email shown in header.</li><li>Black CTA. Black focus borders.</li><li>No client accent here — form is neutral.</li></ul></div>
+  </div>
+</div></div>
+
+<!-- 6 BOARD -->
+<div class="pane" id="p-board"><div class="wrap">
+  <p class="lbl">6 / Board — Admin View (Acme · Blue)</p>
+  <div class="row">
+    <div class="brd">
+      <div class="chr" style="border-radius:12px 12px 0 0"><div style="display:flex;align-items:center;gap:8px;padding:10px 14px"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div><div class="url">feedback.acme.com</div></div></div>
+      <div class="abar"><span>✦ Admin</span><div><a href="#">Settings</a><a href="#">Sign out</a></div></div>
+      <div class="bcon">
+        <div class="btop">
+          <div class="bh">Acme Feedback</div>
+          <div class="bsub">Help us build a better product. Suggest and vote on what comes next.</div>
+          <div class="bcta-row"><button class="cta" style="padding:11px 24px;font-size:14px">+ New suggestion</button></div>
+        </div>
+        <div class="bfs"><input class="bi" placeholder="Search..." readonly><select class="bs2"><option>All statuses</option></select><select class="bs2"><option>Most voted</option></select><select class="bs2"><option>All categories</option></select></div>
+        <div class="br"><div class="uv" style="min-width:46px;background:#2563EB;color:#fff;border-color:#2563EB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>42</div><div class="brb"><div class="brt">Dark mode support</div><div class="brd2">Would love a dark theme for late-night use. My eyes are burning after 10pm.</div><div class="brm"><select class="asel"><option selected>Planned</option><option>New</option><option>Under Review</option><option>In Progress</option><option>Done</option><option>Dismissed</option></select><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>12</span><span class="ctag">✨ Feature</span><button class="del">Delete</button></div></div></div>
+        <div class="br"><div class="uv" style="min-width:46px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>33</div><div class="brb"><div class="brt">Merge duplicate suggestions</div><div class="brd2">Users often submit similar ideas. Would be great to merge them.</div><div class="brm"><select class="asel"><option>New</option><option selected>In Progress</option><option>Done</option></select><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>8</span><span class="ctag">🔧 Improvement</span><button class="del">Delete</button></div></div></div>
+        <div class="br"><div class="uv" style="min-width:46px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>28</div><div class="brb"><div class="brt">Export data to CSV</div><div class="brd2">Need to export feedback data for monthly reporting.</div><div class="brm"><select class="asel"><option selected>Under Review</option><option>Planned</option></select><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>4</span><span class="ctag">✨ Feature</span><button class="del">Delete</button></div></div></div>
+        <div class="br"><div class="uv" style="min-width:46px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>15</div><div class="brb"><div class="brt">Slack integration</div><div class="brd2">Get notified in Slack when new suggestions come in.</div><div class="brm"><select class="asel"><option selected>New</option><option>Under Review</option></select><span class="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>2</span><span class="ctag">✨ Feature</span><button class="del">Delete</button></div></div></div>
+        <div style="text-align:center;padding:28px"><a class="bdg" href="#">Powered by Marapulse</a></div>
+      </div>
+    </div>
+    <div class="notes"><h3>Board — Tally Style</h3><ul>
+      <li><strong>White bg, huge title (36px/900)</strong>, stacked layout.</li>
+      <li>56px top padding, 64px sides. Breathes like a document.</li>
+      <li>Client accent only on voted upvote. Rest is monochrome.</li>
+      <li>Admin: status → select, delete on hover.</li>
+      <li>Users see same page, static pills, no admin controls.</li>
+    </ul></div>
+  </div>
+</div></div>
+
+<script>
+function go(id, el){
+  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on')});
+  document.getElementById('p-'+id).classList.add('on');
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});
+  el.classList.add('on');
+}
+</script>
+</body>
+</html>

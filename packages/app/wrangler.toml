@@ -1,0 +1,46 @@
+name = "marapulse"
+main = "src/index.tsx"
+compatibility_date = "2024-12-01"
+
+[dev]
+port = 8787
+
+[assets]
+directory = "./src/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "marapulse"
+database_id = "local" # Replace with real ID for production
+
+[[kv_namespaces]]
+binding = "KV"
+id = "local" # Replace with real ID for production
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "marapulse-uploads"
+
+# --- Production environment ---
+# Fill in real IDs after running:
+#   wrangler d1 create marapulse-prod
+#   wrangler kv namespace create KV-prod
+# Then set secrets:
+#   wrangler secret put RESEND_API_KEY
+#   wrangler secret put STRIPE_SECRET_KEY
+#   wrangler secret put STRIPE_PRICE_ID
+#   wrangler secret put STRIPE_PRICE_ID_ANNUAL
+#   wrangler secret put STRIPE_WEBHOOK_SECRET
+#   wrangler secret put APP_URL
+
+# [env.production]
+# name = "marapulse"
+#
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "marapulse-prod"
+# database_id = "YOUR_D1_DATABASE_ID"
+#
+# [[env.production.kv_namespaces]]
+# binding = "KV"
+# id = "YOUR_KV_NAMESPACE_ID"
