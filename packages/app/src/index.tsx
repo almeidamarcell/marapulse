@@ -515,6 +515,10 @@ app.post("/api/suggestions/:id/image", async (c) => {
 
   const db = c.get("db");
 
+  if (!c.env.R2) {
+    return c.json({ error: "Image upload is not configured (R2 not enabled)" }, 503);
+  }
+
   // Check paid plan
   const ws = await db.select({ plan: workspaces.plan }).from(workspaces).where(eq(workspaces.id, session.workspaceId)).get();
   if (!ws || ws.plan !== "paid") {
@@ -556,6 +560,7 @@ app.post("/api/suggestions/:id/image", async (c) => {
 
 // Serve uploaded images from R2
 app.get("/uploads/*", async (c) => {
+  if (!c.env.R2) return c.notFound();
   const key = c.req.path.replace("/uploads/", "");
   const object = await c.env.R2.get(key);
   if (!object) {

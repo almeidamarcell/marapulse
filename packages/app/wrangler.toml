@@ -10,16 +10,17 @@ directory = "./src/static"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "marapulse"
-database_id = "local" # Replace with real ID for production
+database_name = "marapulse-prod"
+database_id = "e189c1f5-6ba9-4300-80ff-bb679a3a7c73"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "local" # Replace with real ID for production
+id = "7e15da3877c048a7bb85ad6bb1cf6291"
 
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "marapulse-uploads"
+# R2 requires enabling in Cloudflare Dashboard first
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "marapulse-uploads"
 
 # --- Production environment ---
 # Fill in real IDs after running:

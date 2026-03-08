@@ -4,7 +4,7 @@ import type * as schema from "@marapulse/db";
 export type Bindings = {
   DB: D1Database;
   KV: KVNamespace;
-  R2: R2Bucket;
+  R2?: R2Bucket;
   RESEND_API_KEY: string;
   STRIPE_SECRET_KEY: string;
   STRIPE_PRICE_ID: string;
