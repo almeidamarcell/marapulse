@@ -1621,9 +1621,12 @@ app.get("/settings", async (c) => {
   const cats = await db.select().from(categories).where(eq(categories.boardId, board.id));
   const billingStatus = c.req.query("billing");
 
+  const appUrl = c.env.APP_URL || `${new URL(c.req.url).origin}`;
+
   return c.html(
     <SettingsPage
       board={{
+        id: board.id,
         name: board.name,
         slug: board.slug,
         description: board.description,
@@ -1638,6 +1641,7 @@ app.get("/settings", async (c) => {
       }))}
       plan={(ws?.plan as "free" | "paid") ?? "free"}
       billingStatus={billingStatus}
+      appUrl={appUrl}
     />
   );
 });
@@ -1880,7 +1884,7 @@ app.get("/:boardSlug", async (c) => {
       suggestions={suggestionList}
       activeStatus={statusFilter ?? null}
       isAdmin={!!session}
-      isVerified={!!verifiedAuthor}
+      isVerified={!!session || !!verifiedAuthor}
       categories={cats.map((cat) => ({ id: cat.id, name: cat.name, emoji: cat.emoji }))}
     />
   );

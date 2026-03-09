@@ -11,6 +11,7 @@ type Category = {
 
 type SettingsProps = {
   board: {
+    id: string;
     name: string;
     slug: string;
     description: string | null;
@@ -21,9 +22,10 @@ type SettingsProps = {
   plan: "free" | "paid";
   success?: string;
   billingStatus?: string;
+  appUrl: string;
 };
 
-export const SettingsPage: FC<SettingsProps> = ({ board, categories, plan, success, billingStatus }) => {
+export const SettingsPage: FC<SettingsProps> = ({ board, categories, plan, success, billingStatus, appUrl }) => {
   return (
     <Layout title="Settings - Marapulse">
       <div class="admin-bar">
@@ -103,6 +105,19 @@ export const SettingsPage: FC<SettingsProps> = ({ board, categories, plan, succe
             }));
           });
         </script>`)}
+
+        <hr style="border:none;border-top:1px solid #e8e8e8;margin:24px 0" />
+
+        <h2 style="font-size:16px;font-weight:700;margin-bottom:12px">Widget embed</h2>
+        <p style="font-size:13px;color:#666;margin-bottom:8px">Add this snippet to your website to embed the feedback widget:</p>
+        {raw(`<div x-data="{ copied: false }" style="position:relative">
+          <pre style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:8px;padding:12px 16px;font-size:13px;overflow-x:auto;white-space:pre-wrap;word-break:break-all"><code>&lt;script src="${appUrl}/widget.js" data-board="${board.id}" data-color="${board.color}"&gt;&lt;/script&gt;</code></pre>
+          <button
+            style="position:absolute;top:8px;right:8px;background:#fff;border:1px solid #e8e8e8;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer"
+            x-on:click="navigator.clipboard.writeText('<script src=&quot;${appUrl}/widget.js&quot; data-board=&quot;${board.id}&quot; data-color=&quot;${board.color}&quot;></script>'); copied = true; setTimeout(() => copied = false, 2000)"
+            x-text="copied ? 'Copied!' : 'Copy'"
+          ></button>
+        </div>`)}
 
         <hr style="border:none;border-top:1px solid #e8e8e8;margin:24px 0" />
 

@@ -150,3 +150,37 @@ describe("Widget postMessage uses specific origin instead of wildcard", () => {
     expect(js).toContain(", api)");
   });
 });
+
+// =====================
+// ADMIN SKIPS EMAIL VERIFICATION
+// =====================
+
+describe("Admin: suggest form skips email verification", () => {
+  it("sets isVerified=true for admin with session cookie on board page", async () => {
+    const res = await SELF.fetch("http://localhost/feedback", {
+      headers: { Cookie: "session=sec-admin-session" },
+    });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    // The Alpine.js script sets isVerified from a server-rendered boolean
+    // Admin should get isVerified = true so the form skips email step
+    expect(html).toContain("const isVerified = true");
+  });
+});
+
+// =====================
+// WIDGET EMBED CODE ON SETTINGS
+// =====================
+
+describe("Settings page shows widget embed snippet", () => {
+  it("includes widget script tag with board ID on settings page", async () => {
+    const res = await SELF.fetch("http://localhost/settings", {
+      headers: { Cookie: "session=sec-admin-session" },
+    });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("widget.js");
+    expect(html).toContain(BOARD_ID);
+    expect(html).toContain("data-board");
+  });
+});
