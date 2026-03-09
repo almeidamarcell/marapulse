@@ -10,12 +10,12 @@ directory = "./src/static"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "marapulse-prod"
-database_id = "e189c1f5-6ba9-4300-80ff-bb679a3a7c73"
+database_name = "marapulse"
+database_id = "00000000-0000-0000-0000-000000000000"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "7e15da3877c048a7bb85ad6bb1cf6291"
+id = "00000000000000000000000000000000"
 
 [[r2_buckets]]
 binding = "R2"

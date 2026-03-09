@@ -116,11 +116,11 @@ INSERT INTO members (id, workspace_id, email, name, role, created_at, updated_at
 });
 
 describe("GET /setup (onboarding)", () => {
-  it("shows setup page when no workspaces exist and no session", async () => {
+  it("shows setup page at /setup when no workspaces exist", async () => {
     // Clear all data to simulate fresh install
     await env.DB.exec("DELETE FROM activities; DELETE FROM votes; DELETE FROM comments; DELETE FROM suggestions; DELETE FROM categories; DELETE FROM authors; DELETE FROM members; DELETE FROM boards; DELETE FROM workspaces;");
 
-    const res = await SELF.fetch("http://localhost/", { redirect: "manual" });
+    const res = await SELF.fetch("http://localhost/setup", { redirect: "manual" });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("Set up Marapulse");

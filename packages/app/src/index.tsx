@@ -20,6 +20,29 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 app.use("*", dbMiddleware);
 app.use("*", authMiddleware);
 
+// CSRF: reject state-changing requests from foreign origins
+// Skip widget API routes (/api/w/) since they're designed for cross-origin embedding
+app.use("*", async (c, next) => {
+  const method = c.req.method;
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+    return next();
+  }
+  // Widget API and Stripe webhook are cross-origin by design
+  const path = c.req.path;
+  if (path.startsWith("/api/w/") || path === "/api/stripe/webhook") {
+    return next();
+  }
+  const origin = c.req.header("origin");
+  if (origin) {
+    const requestUrl = new URL(c.req.url);
+    const originUrl = new URL(origin);
+    if (originUrl.host !== requestUrl.host) {
+      return c.json({ error: "Forbidden: cross-origin request" }, 403);
+    }
+  }
+  return next();
+});
+
 // --- Helpers ---
 
 function getFingerprint(c: { req: { header: (name: string) => string | undefined } }): string {
@@ -39,6 +62,14 @@ function generateCode(): string {
   const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
   return String(arr[0] % 1000000).padStart(6, "0");
+}
+
+async function checkRateLimit(kv: KVNamespace, key: string, limit: number, windowSecs: number): Promise<boolean> {
+  const current = await kv.get(key);
+  const count = current ? parseInt(current, 10) : 0;
+  if (count >= limit) return false;
+  await kv.put(key, String(count + 1), { expirationTtl: windowSecs });
+  return true;
 }
 
 // =====================
@@ -263,7 +294,10 @@ app.get("/auth/verify", async (c) => {
     secure: c.req.url.startsWith("https"),
   });
 
-  return c.redirect("/");
+  // Redirect to admin's board after login
+  const db = c.get("db");
+  const board = await db.select({ slug: boards.slug }).from(boards).where(eq(boards.workspaceId, data.workspaceId)).get();
+  return c.redirect(board ? `/${board.slug}` : "/settings");
 });
 
 app.get("/logout", async (c) => {
@@ -280,6 +314,12 @@ app.get("/logout", async (c) => {
 // =====================
 
 app.post("/api/auth/send-code", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  const allowed = await checkRateLimit(c.env.KV, `rl:send-code:${ip}`, 5, 60);
+  if (!allowed) {
+    return c.json({ error: "Too many requests" }, 429);
+  }
+
   const body = await c.req.json();
   const parsed = sendCodeSchema.safeParse(body);
   if (!parsed.success) {
@@ -299,6 +339,12 @@ app.post("/api/auth/send-code", async (c) => {
 });
 
 app.post("/api/auth/verify-code", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  const allowed = await checkRateLimit(c.env.KV, `rl:verify-code:${ip}`, 5, 60);
+  if (!allowed) {
+    return c.json({ error: "Too many requests" }, 429);
+  }
+
   const body = await c.req.json();
   const parsed = verifyCodeSchema.safeParse(body);
   if (!parsed.success) {
@@ -562,7 +608,10 @@ app.post("/api/suggestions/:id/image", async (c) => {
 // Serve uploaded images from R2
 app.get("/uploads/*", async (c) => {
   if (!c.env.R2) return c.notFound();
-  const key = c.req.path.replace("/uploads/", "");
+  const key = decodeURIComponent(c.req.path.replace("/uploads/", ""));
+  if (key.includes("..") || key.startsWith("/")) {
+    return c.json({ error: "Invalid path" }, 400);
+  }
   const object = await c.env.R2.get(key);
   if (!object) {
     return c.notFound();
@@ -1490,7 +1539,7 @@ app.get("/widget.js", (c) => {
   window.Marapulse = {
     identify: function(payload) {
       if (iframe) {
-        iframe.contentWindow.postMessage({ type: 'marapulse:identify', payload: payload }, '*');
+        iframe.contentWindow.postMessage({ type: 'marapulse:identify', payload: payload }, api);
       } else {
         // Store for when iframe opens
         window._marapulseIdentity = payload;
@@ -1501,7 +1550,7 @@ app.get("/widget.js", (c) => {
 
   // If identity was set before widget loaded
   if (window._marapulseIdentity && iframe) {
-    iframe.contentWindow.postMessage({ type: 'marapulse:identify', payload: window._marapulseIdentity }, '*');
+    iframe.contentWindow.postMessage({ type: 'marapulse:identify', payload: window._marapulseIdentity }, api);
   }
 })();`;
 
