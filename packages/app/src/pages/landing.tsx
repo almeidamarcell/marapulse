@@ -209,7 +209,6 @@ img,svg{display:block;max-width:100%}
   <div class="nav-links">
     <a href="#features" class="nav-link">Features</a>
     <a href="#pricing" class="nav-link">Pricing</a>
-    <a href="https://github.com/almeidamarcell/marapulse" target="_blank" rel="noopener noreferrer" class="nav-link">GitHub</a>
     <a href="/login" class="nav-link">Log in</a>
     <a href="/setup" class="nav-cta">Start for free</a>
   </div>

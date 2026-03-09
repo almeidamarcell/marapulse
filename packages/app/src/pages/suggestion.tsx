@@ -79,9 +79,10 @@ export const SuggestionDetail: FC<SuggestionDetailProps> = ({ board, suggestion,
     <Layout title={`${suggestion.title} - ${board.name}`}>
       {isAdmin && (
         <div class="admin-bar">
-          <span class="admin-bar-label">✦ Admin</span>
+          <a href={`/${board.slug}`} class="admin-bar-label" style="text-decoration:none;color:inherit">✦ Admin</a>
           <div class="admin-bar-links">
             <a href="/settings">Settings</a>
+            <a href="/settings#widget">Widget</a>
             <a href="/logout">Sign out</a>
           </div>
         </div>

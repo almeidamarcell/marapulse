@@ -29,9 +29,10 @@ export const SettingsPage: FC<SettingsProps> = ({ board, categories, plan, succe
   return (
     <Layout title="Settings - Marapulse">
       <div class="admin-bar">
-        <span class="admin-bar-label">✦ Admin</span>
+        <a href={`/${board.slug}`} class="admin-bar-label" style="text-decoration:none;color:inherit">✦ Admin</a>
         <div class="admin-bar-links">
           <a href={`/${board.slug}`}>Board</a>
+          <a href="/settings#widget">Widget</a>
           <a href="/logout">Sign out</a>
         </div>
       </div>
@@ -108,7 +109,7 @@ export const SettingsPage: FC<SettingsProps> = ({ board, categories, plan, succe
 
         <hr style="border:none;border-top:1px solid #e8e8e8;margin:24px 0" />
 
-        <h2 style="font-size:16px;font-weight:700;margin-bottom:12px">Widget embed</h2>
+        <h2 id="widget" style="font-size:16px;font-weight:700;margin-bottom:12px">Widget embed</h2>
         <p style="font-size:13px;color:#666;margin-bottom:8px">Add this snippet to your website to embed the feedback widget:</p>
         {raw(`<div x-data="{ copied: false }" style="position:relative">
           <pre style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:8px;padding:12px 16px;font-size:13px;overflow-x:auto;white-space:pre-wrap;word-break:break-all"><code>&lt;script src="${appUrl}/widget.js" data-board="${board.id}" data-color="${board.color}"&gt;&lt;/script&gt;</code></pre>
