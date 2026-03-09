@@ -10,6 +10,7 @@ import { BoardHome } from "./pages/home";
 import { SuggestionDetail } from "./pages/suggestion";
 import { LoginPage } from "./pages/login";
 import { SettingsPage } from "./pages/settings";
+import { landingPageHtml } from "./pages/landing";
 import type { Bindings, Variables } from "./types";
 import type { Status } from "@marapulse/shared";
 
@@ -1641,13 +1642,20 @@ app.post("/settings/billing", async (c) => {
   return c.redirect("/settings?billing=error");
 });
 
-app.get("/", async (c) => {
+app.get("/", (c) => {
+  return c.html(landingPageHtml());
+});
+
+app.get("/setup", async (c) => {
   const db = c.get("db");
 
-  // Check if any workspace exists — if not, show onboarding
-  const ws = await db.select({ id: workspaces.id }).from(workspaces).limit(1).get();
-  if (!ws) {
-    return c.html(`<!DOCTYPE html>
+  // If already set up, redirect to login
+  const existingWs = await db.select({ id: workspaces.id }).from(workspaces).limit(1).get();
+  if (existingWs) {
+    return c.redirect("/login");
+  }
+
+  return c.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -1668,6 +1676,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#fafafa;color:#0f
 .btn-primary{width:100%;padding:12px;background:#0f0f0f;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
 .error{color:#dc2626;font-size:13px;margin-top:8px;display:none}
+.back-link{display:block;text-align:center;margin-top:16px;font-size:13px;color:#666}
+.back-link:hover{color:#0f0f0f}
 </style>
 </head>
 <body>
@@ -1700,6 +1710,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#fafafa;color:#0f
     <button type="submit" class="btn-primary" id="submit-btn">Create workspace</button>
     <div class="error" id="error-msg"></div>
   </form>
+  <a href="/" class="back-link">&larr; Back to home</a>
 </div>
 <script>
 const form = document.getElementById('setup-form');
@@ -1739,13 +1750,6 @@ form.addEventListener('submit', async (e) => {
 </script>
 </body>
 </html>`);
-  }
-
-  const board = await db.select({ slug: boards.slug }).from(boards).limit(1).get();
-  if (board) {
-    return c.redirect(`/${board.slug}`);
-  }
-  return c.text("No boards yet. Create one to get started.");
 });
 
 app.get("/:boardSlug", async (c) => {
