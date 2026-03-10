@@ -477,6 +477,8 @@ var n=document.getElementById('nav');
 if(n){var t;window.addEventListener('scroll',function(){cancelAnimationFrame(t);t=requestAnimationFrame(function(){n.classList.toggle('scrolled',window.scrollY>8)})},{passive:true})}
 </script>
 
+<script src="https://marapulse.com/widget.js" data-board="218bd8fb-7300-47c3-8c62-6a1746688729" data-color="#2563eb"></script>
+
 </body>
 </html>`;
 }
