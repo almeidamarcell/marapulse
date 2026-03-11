@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { eq, desc, and, sql } from "drizzle-orm";
-import { suggestions, boards, categories, votes, comments, authors, members, workspaces, activities } from "@marapulse/db";
-import { loginSchema, updateStatusSchema, sendCodeSchema, verifyCodeSchema, createSuggestionSchema, createCommentSchema, identifySchema } from "@marapulse/shared";
+import { suggestions, boards, categories, votes, comments, authors, members, workspaces, activities, contentItems, contentVotes } from "@marapulse/db";
+import { loginSchema, updateStatusSchema, sendCodeSchema, verifyCodeSchema, createSuggestionSchema, createCommentSchema, identifySchema, reactionVoteSchema } from "@marapulse/shared";
 import { dbMiddleware } from "./middleware/db";
 import { authMiddleware } from "./middleware/auth";
 import { sendMagicLink, sendVerificationCode, sendStatusNotification } from "./lib/email";
@@ -10,6 +10,7 @@ import { BoardHome } from "./pages/home";
 import { SuggestionDetail } from "./pages/suggestion";
 import { LoginPage } from "./pages/login";
 import { SettingsPage } from "./pages/settings";
+import { ReactionsPage } from "./pages/reactions";
 import { landingPageHtml } from "./pages/landing";
 import type { Bindings, Variables } from "./types";
 import type { Status } from "@marapulse/shared";
@@ -1122,6 +1123,221 @@ app.post("/api/w/:boardId/suggestions/:id/comment", async (c) => {
 });
 
 // =====================
+// REACTIONS API
+// =====================
+
+app.post("/api/w/:boardId/reactions/vote", async (c) => {
+  const db = c.get("db");
+  const boardId = c.req.param("boardId");
+
+  const body = await c.req.json();
+  const parsed = reactionVoteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid input" }, 400);
+  }
+
+  const { externalId, label, url, value } = parsed.data;
+
+  // Rate limit: 30 votes/min per fingerprint
+  let authorId = getCookie(c, "fp");
+  if (!authorId) {
+    authorId = getFingerprint(c);
+    setCookie(c, "fp", authorId, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "None",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
+
+  const kv = (c.env as Bindings).KV;
+  const allowed = await checkRateLimit(kv, `rl:reaction:${authorId}`, 30, 60);
+  if (!allowed) {
+    return c.json({ error: "Rate limit exceeded" }, 429);
+  }
+
+  // Upsert content_item
+  let item = await db
+    .select({ id: contentItems.id, upvoteCount: contentItems.upvoteCount, downvoteCount: contentItems.downvoteCount })
+    .from(contentItems)
+    .where(and(eq(contentItems.boardId, boardId), eq(contentItems.externalId, externalId)))
+    .get();
+
+  if (!item) {
+    const inserted = await db.insert(contentItems).values({
+      boardId,
+      externalId,
+      label: label ?? null,
+      url: url ?? null,
+    }).returning();
+    item = { id: inserted[0].id, upvoteCount: 0, downvoteCount: 0 };
+  }
+
+  // Check existing vote
+  const existingVote = await db
+    .select({ id: contentVotes.id, value: contentVotes.value })
+    .from(contentVotes)
+    .where(and(eq(contentVotes.contentItemId, item.id), eq(contentVotes.authorId, authorId)))
+    .get();
+
+  if (existingVote) {
+    if (existingVote.value === value) {
+      // Toggle off
+      await db.delete(contentVotes).where(eq(contentVotes.id, existingVote.id));
+      const countField = value === 1 ? "upvote_count" : "downvote_count";
+      await db.update(contentItems).set(
+        value === 1
+          ? { upvoteCount: sql`upvote_count - 1` }
+          : { downvoteCount: sql`downvote_count - 1` }
+      ).where(eq(contentItems.id, item.id));
+    } else {
+      // Change direction
+      await db.update(contentVotes).set({ value, updatedAt: new Date() }).where(eq(contentVotes.id, existingVote.id));
+      if (value === 1) {
+        await db.update(contentItems).set({
+          upvoteCount: sql`upvote_count + 1`,
+          downvoteCount: sql`downvote_count - 1`,
+        }).where(eq(contentItems.id, item.id));
+      } else {
+        await db.update(contentItems).set({
+          upvoteCount: sql`upvote_count - 1`,
+          downvoteCount: sql`downvote_count + 1`,
+        }).where(eq(contentItems.id, item.id));
+      }
+    }
+  } else {
+    // New vote
+    await db.insert(contentVotes).values({ contentItemId: item.id, authorId, value });
+    await db.update(contentItems).set(
+      value === 1
+        ? { upvoteCount: sql`upvote_count + 1` }
+        : { downvoteCount: sql`downvote_count + 1` }
+    ).where(eq(contentItems.id, item.id));
+  }
+
+  // Fetch updated counts
+  const updated = await db
+    .select({ upvoteCount: contentItems.upvoteCount, downvoteCount: contentItems.downvoteCount })
+    .from(contentItems)
+    .where(eq(contentItems.id, item.id))
+    .get();
+
+  // Check current user vote
+  const currentVote = await db
+    .select({ value: contentVotes.value })
+    .from(contentVotes)
+    .where(and(eq(contentVotes.contentItemId, item.id), eq(contentVotes.authorId, authorId)))
+    .get();
+
+  return c.json({
+    voted: currentVote?.value ?? null,
+    upvoteCount: updated?.upvoteCount ?? 0,
+    downvoteCount: updated?.downvoteCount ?? 0,
+  });
+});
+
+app.get("/api/w/:boardId/reactions/items", async (c) => {
+  const db = c.get("db");
+  const boardId = c.req.param("boardId");
+  const idsParam = c.req.query("ids") ?? "";
+  const ids = idsParam ? idsParam.split(",").slice(0, 100) : [];
+
+  if (ids.length === 0) {
+    return c.json({});
+  }
+
+  let authorId = getCookie(c, "fp");
+  if (!authorId) {
+    authorId = getFingerprint(c);
+  }
+
+  const result: Record<string, { upvoteCount: number; downvoteCount: number; userVote: number | null }> = {};
+
+  // Initialize all requested IDs with zeroes
+  for (const id of ids) {
+    result[id] = { upvoteCount: 0, downvoteCount: 0, userVote: null };
+  }
+
+  // Fetch existing items
+  const items = await db
+    .select({
+      id: contentItems.id,
+      externalId: contentItems.externalId,
+      upvoteCount: contentItems.upvoteCount,
+      downvoteCount: contentItems.downvoteCount,
+    })
+    .from(contentItems)
+    .where(and(
+      eq(contentItems.boardId, boardId),
+      sql`${contentItems.externalId} IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`
+    ))
+    .all();
+
+  // Fetch user votes for these items
+  const itemIds = items.map(i => i.id);
+  let userVotes: { contentItemId: string; value: number }[] = [];
+  if (itemIds.length > 0) {
+    userVotes = await db
+      .select({ contentItemId: contentVotes.contentItemId, value: contentVotes.value })
+      .from(contentVotes)
+      .where(and(
+        eq(contentVotes.authorId, authorId),
+        sql`${contentVotes.contentItemId} IN (${sql.join(itemIds.map(id => sql`${id}`), sql`, `)})`
+      ))
+      .all();
+  }
+
+  const voteMap = new Map(userVotes.map(v => [v.contentItemId, v.value]));
+
+  for (const item of items) {
+    result[item.externalId] = {
+      upvoteCount: item.upvoteCount,
+      downvoteCount: item.downvoteCount,
+      userVote: voteMap.get(item.id) ?? null,
+    };
+  }
+
+  return c.json(result);
+});
+
+app.get("/api/w/:boardId/reactions/item/:externalId", async (c) => {
+  const db = c.get("db");
+  const boardId = c.req.param("boardId");
+  const externalId = c.req.param("externalId");
+
+  let authorId = getCookie(c, "fp");
+  if (!authorId) {
+    authorId = getFingerprint(c);
+  }
+
+  const item = await db
+    .select({
+      id: contentItems.id,
+      upvoteCount: contentItems.upvoteCount,
+      downvoteCount: contentItems.downvoteCount,
+    })
+    .from(contentItems)
+    .where(and(eq(contentItems.boardId, boardId), eq(contentItems.externalId, externalId)))
+    .get();
+
+  if (!item) {
+    return c.json({ upvoteCount: 0, downvoteCount: 0, userVote: null });
+  }
+
+  const userVote = await db
+    .select({ value: contentVotes.value })
+    .from(contentVotes)
+    .where(and(eq(contentVotes.contentItemId, item.id), eq(contentVotes.authorId, authorId)))
+    .get();
+
+  return c.json({
+    upvoteCount: item.upvoteCount,
+    downvoteCount: item.downvoteCount,
+    userVote: userVote?.value ?? null,
+  });
+});
+
+// =====================
 // EMBED + WIDGET + DEMO
 // =====================
 
@@ -1562,6 +1778,139 @@ app.get("/widget.js", (c) => {
   });
 });
 
+app.get("/reactions.js", (c) => {
+  const js = `(function(){
+  var s = document.currentScript;
+  var boardId = s.getAttribute('data-board');
+  var color = s.getAttribute('data-color') || '#22c55e';
+  var api = s.getAttribute('data-api') || s.src.replace(/\\/reactions\\.js.*/, '');
+  if (!boardId) { console.error('Marapulse: data-board is required'); return; }
+
+  var CSS = \`
+    :host { display: inline-flex; align-items: center; gap: 4px; font-family: system-ui, -apple-system, sans-serif; }
+    .mp-btn { display: inline-flex; align-items: center; gap: 3px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; color: #666; transition: all .15s ease; line-height: 1; }
+    .mp-btn:hover { border-color: #bbb; color: #333; }
+    .mp-btn.active-up { border-color: \${color}; color: \${color}; background: \${color}11; }
+    .mp-btn.active-down { border-color: #e53e3e; color: #e53e3e; background: #e53e3e11; }
+    .mp-btn svg { width: 12px; height: 12px; fill: currentColor; }
+    .mp-powered { font-size: 10px; color: #aaa; text-decoration: none; margin-left: 4px; }
+    .mp-powered:hover { color: #888; }
+  \`;
+
+  var upSvg = '<svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>';
+  var downSvg = '<svg viewBox="0 0 24 24"><path d="M12 20l8-8h-5V4H9v8H4z"/></svg>';
+
+  function renderWidget(el) {
+    var externalId = el.getAttribute('data-marapulse-reaction');
+    var label = el.getAttribute('data-label') || '';
+    if (!externalId) return;
+
+    var shadow = el.attachShadow({ mode: 'open' });
+    var style = document.createElement('style');
+    style.textContent = CSS;
+    shadow.appendChild(style);
+
+    var upBtn = document.createElement('button');
+    upBtn.className = 'mp-btn';
+    upBtn.innerHTML = upSvg + '<span class="mp-count">0</span>';
+    shadow.appendChild(upBtn);
+
+    var downBtn = document.createElement('button');
+    downBtn.className = 'mp-btn';
+    downBtn.innerHTML = downSvg + '<span class="mp-count">0</span>';
+    shadow.appendChild(downBtn);
+
+    var powered = document.createElement('a');
+    powered.className = 'mp-powered';
+    powered.href = api;
+    powered.target = '_blank';
+    powered.rel = 'noopener';
+    powered.textContent = 'Marapulse';
+    shadow.appendChild(powered);
+
+    function update(data) {
+      upBtn.querySelector('.mp-count').textContent = data.upvoteCount || 0;
+      downBtn.querySelector('.mp-count').textContent = data.downvoteCount || 0;
+      upBtn.className = 'mp-btn' + (data.userVote === 1 ? ' active-up' : '');
+      downBtn.className = 'mp-btn' + (data.userVote === -1 ? ' active-down' : '');
+      el._mpData = data;
+    }
+
+    function vote(value) {
+      var prev = el._mpData || { upvoteCount: 0, downvoteCount: 0, userVote: null };
+      // Optimistic update
+      var optimistic = { upvoteCount: prev.upvoteCount, downvoteCount: prev.downvoteCount, userVote: null };
+      if (prev.userVote === value) {
+        if (value === 1) optimistic.upvoteCount--;
+        else optimistic.downvoteCount--;
+      } else {
+        if (prev.userVote === 1) optimistic.upvoteCount--;
+        if (prev.userVote === -1) optimistic.downvoteCount--;
+        if (value === 1) optimistic.upvoteCount++;
+        else optimistic.downvoteCount++;
+        optimistic.userVote = value;
+      }
+      update(optimistic);
+
+      fetch(api + '/api/w/' + boardId + '/reactions/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ externalId: externalId, label: label || undefined, value: value })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        update({ upvoteCount: data.upvoteCount, downvoteCount: data.downvoteCount, userVote: data.voted });
+      }).catch(function() { update(prev); });
+    }
+
+    upBtn.addEventListener('click', function() { vote(1); });
+    downBtn.addEventListener('click', function() { vote(-1); });
+
+    el._mpUpdate = update;
+    el._mpId = externalId;
+  }
+
+  function initAll() {
+    var els = document.querySelectorAll('[data-marapulse-reaction]');
+    var toInit = [];
+    var ids = [];
+    els.forEach(function(el) {
+      if (el.shadowRoot) return; // already initialized
+      toInit.push(el);
+      ids.push(el.getAttribute('data-marapulse-reaction'));
+    });
+
+    toInit.forEach(function(el) { renderWidget(el); });
+
+    if (ids.length === 0) return;
+
+    fetch(api + '/api/w/' + boardId + '/reactions/items?ids=' + ids.join(','), {
+      credentials: 'include'
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      toInit.forEach(function(el) {
+        var id = el._mpId;
+        if (data[id]) el._mpUpdate(data[id]);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+
+  window.Marapulse = window.Marapulse || {};
+  window.Marapulse.refreshReactions = initAll;
+})();`;
+
+  return new Response(js, {
+    headers: {
+      "Content-Type": "application/javascript; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+});
+
 app.get("/demo", async (c) => {
   const db = c.get("db");
   const board = await db.select({ id: boards.id, color: boards.color }).from(boards).limit(1).get();
@@ -1887,6 +2236,41 @@ app.get("/:boardSlug", async (c) => {
       isVerified={!!session || !!verifiedAuthor}
       categories={cats.map((cat) => ({ id: cat.id, name: cat.name, emoji: cat.emoji }))}
     />
+  );
+});
+
+app.get("/:boardSlug/reactions", async (c) => {
+  const db = c.get("db");
+  const boardSlug = c.req.param("boardSlug");
+  const session = c.get("session");
+
+  if (!session) return c.redirect("/login");
+
+  const board = await db
+    .select({ id: boards.id, name: boards.name, slug: boards.slug, color: boards.color })
+    .from(boards)
+    .where(eq(boards.slug, boardSlug))
+    .get();
+
+  if (!board) return c.notFound();
+
+  const items = await db
+    .select({
+      id: contentItems.id,
+      externalId: contentItems.externalId,
+      label: contentItems.label,
+      url: contentItems.url,
+      upvoteCount: contentItems.upvoteCount,
+      downvoteCount: contentItems.downvoteCount,
+      createdAt: contentItems.createdAt,
+    })
+    .from(contentItems)
+    .where(eq(contentItems.boardId, board.id))
+    .orderBy(desc(sql`upvote_count - downvote_count`))
+    .all();
+
+  return c.html(
+    <ReactionsPage board={board} items={items} />
   );
 });
 

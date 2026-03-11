@@ -73,6 +73,7 @@ export const BoardHome: FC<BoardHomeProps> = ({ board, suggestions, activeStatus
           <div class="admin-bar-links">
             <a href="/settings">Settings</a>
             <a href="/settings#widget">Widget</a>
+            <a href={`/${board.slug}/reactions`}>Reactions</a>
             <a href="/logout">Sign out</a>
           </div>
         </div>

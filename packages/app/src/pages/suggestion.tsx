@@ -83,6 +83,7 @@ export const SuggestionDetail: FC<SuggestionDetailProps> = ({ board, suggestion,
           <div class="admin-bar-links">
             <a href="/settings">Settings</a>
             <a href="/settings#widget">Widget</a>
+            <a href={`/${board.slug}/reactions`}>Reactions</a>
             <a href="/logout">Sign out</a>
           </div>
         </div>

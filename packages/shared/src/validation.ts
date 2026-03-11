@@ -44,3 +44,10 @@ export const identifySchema = z.object({
   email: z.string().email().optional(),
   name: z.string().optional(),
 });
+
+export const reactionVoteSchema = z.object({
+  externalId: z.string().min(1).max(500),
+  label: z.string().max(200).optional(),
+  url: z.string().max(2000).optional(),
+  value: z.union([z.literal(1), z.literal(-1)]),
+});
