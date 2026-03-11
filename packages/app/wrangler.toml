@@ -10,37 +10,17 @@ directory = "./src/static"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "marapulse"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_name = "marapulse-prod"
+database_id = "e189c1f5-6ba9-4300-80ff-bb679a3a7c73"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "00000000000000000000000000000000"
+id = "7e15da3877c048a7bb85ad6bb1cf6291"
 
 [[r2_buckets]]
 binding = "R2"
 bucket_name = "marapulse-uploads"
 
-# --- Production environment ---
-# Fill in real IDs after running:
-#   wrangler d1 create marapulse-prod
-#   wrangler kv namespace create KV-prod
-# Then set secrets:
-#   wrangler secret put RESEND_API_KEY
-#   wrangler secret put STRIPE_SECRET_KEY
-#   wrangler secret put STRIPE_PRICE_ID
-#   wrangler secret put STRIPE_PRICE_ID_ANNUAL
-#   wrangler secret put STRIPE_WEBHOOK_SECRET
-#   wrangler secret put APP_URL
-
-# [env.production]
-# name = "marapulse"
-#
-# [[env.production.d1_databases]]
-# binding = "DB"
-# database_name = "marapulse-prod"
-# database_id = "YOUR_D1_DATABASE_ID"
-#
-# [[env.production.kv_namespaces]]
-# binding = "KV"
-# id = "YOUR_KV_NAMESPACE_ID"
+# Secrets are set via: wrangler secret put <NAME>
+# Required: RESEND_API_KEY, STRIPE_SECRET_KEY, STRIPE_PRICE_ID,
+#           STRIPE_PRICE_ID_ANNUAL, STRIPE_WEBHOOK_SECRET, APP_URL
