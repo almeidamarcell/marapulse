@@ -6,7 +6,7 @@ export async function sendMagicLink(apiKey: string, to: string, url: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Marapulse <noreply@marapulse.marcell.com.br>",
+      from: "Marapulse <noreply@marapulse.com>",
       to,
       subject: "Sign in to Marapulse",
       html: `
@@ -29,7 +29,7 @@ export async function sendVerificationCode(apiKey: string, to: string, code: str
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Marapulse <noreply@marapulse.marcell.com.br>",
+      from: "Marapulse <noreply@marapulse.com>",
       to,
       subject: `Your verification code: ${code}`,
       html: `
@@ -62,7 +62,7 @@ export async function sendStatusNotification(apiKey: string, to: string, title: 
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Marapulse <noreply@marapulse.marcell.com.br>",
+      from: "Marapulse <noreply@marapulse.com>",
       to,
       subject: `Your suggestion "${title}" is now ${label}`,
       html: `

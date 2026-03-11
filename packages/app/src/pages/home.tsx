@@ -69,9 +69,11 @@ export const BoardHome: FC<BoardHomeProps> = ({ board, suggestions, activeStatus
     <Layout title={`${board.name} - Marapulse`}>
       {isAdmin && (
         <div class="admin-bar">
-          <span class="admin-bar-label">✦ Admin</span>
+          <a href={`/${board.slug}`} class="admin-bar-label" style="text-decoration:none;color:inherit">✦ Admin</a>
           <div class="admin-bar-links">
             <a href="/settings">Settings</a>
+            <a href="/settings#widget">Widget</a>
+            <a href={`/${board.slug}/reactions`}>Reactions</a>
             <a href="/logout">Sign out</a>
           </div>
         </div>

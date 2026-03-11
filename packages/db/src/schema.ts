@@ -137,6 +137,38 @@ export const comments = sqliteTable(
   ]
 );
 
+export const contentItems = sqliteTable(
+  "content_items",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    boardId: text("board_id").notNull().references(() => boards.id, { onDelete: "cascade" }),
+    externalId: text("external_id").notNull(),
+    label: text("label"),
+    url: text("url"),
+    upvoteCount: integer("upvote_count").notNull().default(0),
+    downvoteCount: integer("downvote_count").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("content_items_board_external_idx").on(table.boardId, table.externalId),
+  ]
+);
+
+export const contentVotes = sqliteTable(
+  "content_votes",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    contentItemId: text("content_item_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
+    authorId: text("author_id").notNull(),
+    value: integer("value").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("content_votes_item_author_idx").on(table.contentItemId, table.authorId),
+    index("content_votes_item_idx").on(table.contentItemId),
+  ]
+);
+
 export const activities = sqliteTable(
   "activities",
   {
