@@ -148,17 +148,17 @@ app.post("/api/stripe/webhook", async (c) => {
 app.post("/setup", async (c) => {
   const db = c.get("db");
 
-  // Only allow setup if no workspaces exist
-  const existingWs = await db.select({ id: workspaces.id }).from(workspaces).limit(1).get();
-  if (existingWs) {
-    return c.json({ error: "Already set up" }, 400);
-  }
-
   const body = await c.req.json();
   const { workspaceName, workspaceSlug, boardName, boardColor, adminEmail } = body;
 
   if (!workspaceName || !workspaceSlug || !boardName || !adminEmail) {
     return c.json({ error: "Missing required fields" }, 400);
+  }
+
+  // Check slug uniqueness
+  const existingSlug = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.slug, workspaceSlug)).get();
+  if (existingSlug) {
+    return c.json({ error: "That workspace slug is already taken" }, 400);
   }
 
   // Create workspace
@@ -177,16 +177,17 @@ app.post("/setup", async (c) => {
   });
 
   // Create admin member
-  await db.insert(members).values({
+  const memberResult = await db.insert(members).values({
     workspaceId: ws.id,
     email: adminEmail,
     role: "owner",
-  });
+  }).returning();
+  const member = memberResult[0];
 
   // Send magic link to admin
   const token = crypto.randomUUID();
   await c.env.KV.put(`magic:${token}`, JSON.stringify({
-    memberId: ws.id,
+    memberId: member.id,
     workspaceId: ws.id,
     email: adminEmail,
     name: null,
@@ -2049,14 +2050,6 @@ app.get("/", (c) => {
 });
 
 app.get("/setup", async (c) => {
-  const db = c.get("db");
-
-  // If already set up, redirect to login
-  const existingWs = await db.select({ id: workspaces.id }).from(workspaces).limit(1).get();
-  if (existingWs) {
-    return c.redirect("/login");
-  }
-
   return c.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
