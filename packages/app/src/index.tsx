@@ -971,6 +971,7 @@ app.post("/api/w/:boardId/suggestions/:id/vote", async (c) => {
     setCookie(c, "fp", authorId, {
       path: "/",
       httpOnly: true,
+      secure: true,
       sameSite: "None",
       maxAge: 60 * 60 * 24 * 365,
     });
@@ -1127,6 +1128,19 @@ app.post("/api/w/:boardId/suggestions/:id/comment", async (c) => {
 // REACTIONS API
 // =====================
 
+// CORS preflight + headers for cross-origin widget usage
+app.use("/api/w/:boardId/reactions/*", async (c, next) => {
+  const origin = c.req.header("Origin") || "*";
+  c.header("Access-Control-Allow-Origin", origin);
+  c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type");
+  c.header("Access-Control-Allow-Credentials", "true");
+  if (c.req.method === "OPTIONS") {
+    return new Response(null, { status: 204 });
+  }
+  await next();
+});
+
 app.post("/api/w/:boardId/reactions/vote", async (c) => {
   const db = c.get("db");
   const boardId = c.req.param("boardId");
@@ -1146,6 +1160,7 @@ app.post("/api/w/:boardId/reactions/vote", async (c) => {
     setCookie(c, "fp", authorId, {
       path: "/",
       httpOnly: true,
+      secure: true,
       sameSite: "None",
       maxAge: 60 * 60 * 24 * 365,
     });
