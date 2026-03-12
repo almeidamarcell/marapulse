@@ -1136,7 +1136,7 @@ app.use("/api/w/:boardId/reactions/*", async (c, next) => {
   c.header("Access-Control-Allow-Headers", "Content-Type");
   c.header("Access-Control-Allow-Credentials", "true");
   if (c.req.method === "OPTIONS") {
-    return new Response(null, { status: 204 });
+    return c.body(null, 204);
   }
   await next();
 });
