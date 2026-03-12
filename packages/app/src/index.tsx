@@ -1841,7 +1841,7 @@ app.get("/reactions.js", (c) => {
     powered.href = api;
     powered.target = '_blank';
     powered.rel = 'noopener';
-    powered.textContent = 'Marapulse';
+    powered.textContent = 'Powered by Marapulse';
     shadow.appendChild(powered);
 
     function update(data) {
