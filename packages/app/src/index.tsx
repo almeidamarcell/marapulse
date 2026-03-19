@@ -82,9 +82,9 @@ app.post("/api/stripe/webhook", async (c) => {
   const signature = c.req.header("stripe-signature");
   const rawBody = await c.req.text();
 
-  // In production, verify webhook signature
-  // For now, skip verification if signature is "test_skip" (testing)
-  if (signature !== "test_skip" && c.env.STRIPE_WEBHOOK_SECRET) {
+  // Verify webhook signature when STRIPE_WEBHOOK_SECRET is configured.
+  // In production, this secret must always be set.
+  if (c.env.STRIPE_WEBHOOK_SECRET) {
     // Stripe webhook signature verification using Web Crypto
     const encoder = new TextEncoder();
     const parts = signature?.split(",") ?? [];
@@ -248,9 +248,6 @@ app.post("/login", async (c) => {
   const appUrl = c.env.APP_URL || `${c.req.url.split("/").slice(0, 3).join("/")}`;
   const verifyUrl = `${appUrl}/auth/verify?token=${token}`;
 
-  console.log(`[Login] Sending magic link to: ${email}`);
-  console.log(`[Login] Verify URL: ${verifyUrl}`);
-  console.log(`[Login] RESEND_API_KEY present: ${!!c.env.RESEND_API_KEY}`);
 
   try {
     await sendMagicLink(c.env.RESEND_API_KEY, email, verifyUrl);
@@ -333,8 +330,8 @@ app.post("/api/auth/send-code", async (c) => {
 
   try {
     await sendVerificationCode(c.env.RESEND_API_KEY, parsed.data.email, code);
-  } catch {
-    console.log(`[DEV] Verification code for ${parsed.data.email}: ${code}`);
+  } catch (err) {
+    console.error("[Email] Failed to send verification code:", err);
   }
 
   return c.json({ ok: true });
@@ -1128,7 +1125,11 @@ app.post("/api/w/:boardId/suggestions/:id/comment", async (c) => {
 // REACTIONS API
 // =====================
 
-// CORS preflight + headers for cross-origin widget usage
+// CORS preflight + headers for cross-origin widget usage.
+// Security note: This intentionally allows any origin because the reactions widget
+// is embedded on customer websites. Credentials (cookies) are limited to fingerprint
+// tracking cookies (SameSite=None, Secure) — not admin session cookies. The fingerprint
+// is per-origin by design, so cross-origin access does not grant elevated privileges.
 app.use("/api/w/:boardId/reactions/*", async (c, next) => {
   const origin = c.req.header("Origin") || "*";
   c.header("Access-Control-Allow-Origin", origin);
