@@ -50,7 +50,7 @@ describe("POST /api/stripe/webhook", () => {
 
     const res = await SELF.fetch("http://localhost/api/stripe/webhook", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "stripe-signature": "test_skip" },
+      headers: { "Content-Type": "application/json", "stripe-signature": "t=1234567890,v1=placeholder" },
       body: JSON.stringify(event),
     });
     expect(res.status).toBe(200);
@@ -76,7 +76,7 @@ describe("POST /api/stripe/webhook", () => {
 
     const res = await SELF.fetch("http://localhost/api/stripe/webhook", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "stripe-signature": "test_skip" },
+      headers: { "Content-Type": "application/json", "stripe-signature": "t=1234567890,v1=placeholder" },
       body: JSON.stringify(event),
     });
     expect(res.status).toBe(200);

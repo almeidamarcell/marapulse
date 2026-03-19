@@ -1,0 +1,548 @@
+openapi: 3.1.0
+info:
+  title: Marapulse API
+  version: 0.3.0
+  description: |
+    API for the Marapulse embeddable feedback board. This spec covers the public APIs
+    used by the widget, reactions widget, and client-side integrations.
+
+    **Base URL:** Your Marapulse deployment URL (e.g., `https://marapulse.example.com`)
+
+    **Authentication:** Most widget endpoints use cookie-based fingerprint tracking.
+    Email-verified endpoints require a `verified_author` cookie obtained via the auth flow.
+  license:
+    name: O'Saasy License
+    url: https://osaasy.dev
+
+servers:
+  - url: "{baseUrl}"
+    variables:
+      baseUrl:
+        default: http://localhost:8787
+
+tags:
+  - name: Widget
+    description: Feedback board widget API
+  - name: Reactions
+    description: Inline content voting widget API
+  - name: Auth
+    description: End-user email verification
+
+paths:
+  /api/w/{boardId}:
+    get:
+      tags: [Widget]
+      summary: Get board configuration
+      description: Returns board metadata for widget initialization.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      responses:
+        "200":
+          description: Board configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  slug:
+                    type: string
+                  description:
+                    type: string
+                    nullable: true
+                  color:
+                    type: string
+                    description: Hex color (e.g., "#2563EB")
+                  locale:
+                    type: string
+                    enum: [en, pt-br]
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        emoji:
+                          type: string
+                          nullable: true
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/w/{boardId}/suggestions:
+    get:
+      tags: [Widget]
+      summary: List suggestions
+      description: Returns paginated suggestions for the board, with vote status for the current user.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/Status"
+        - name: q
+          in: query
+          description: Search query (matches title and description)
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Paginated suggestion list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SuggestionSummary"
+                  page:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  total:
+                    type: integer
+
+    post:
+      tags: [Widget]
+      summary: Create a suggestion
+      description: Requires a verified author (email verification or client identification).
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSuggestion"
+      responses:
+        "201":
+          description: Suggestion created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestion:
+                    $ref: "#/components/schemas/SuggestionSummary"
+        "401":
+          description: Not verified — complete email verification first
+
+  /api/w/{boardId}/suggestions/{id}:
+    get:
+      tags: [Widget]
+      summary: Get suggestion detail
+      description: Returns a suggestion with its comments.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/suggestionId"
+      responses:
+        "200":
+          description: Suggestion with comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestion:
+                    $ref: "#/components/schemas/SuggestionSummary"
+                  comments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/w/{boardId}/suggestions/{id}/vote:
+    post:
+      tags: [Widget]
+      summary: Toggle vote
+      description: |
+        Toggles the current user's vote on a suggestion. No authentication required —
+        uses a fingerprint cookie for tracking. Calling again removes the vote.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/suggestionId"
+      responses:
+        "200":
+          description: Vote toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  voted:
+                    type: boolean
+                  voteCount:
+                    type: integer
+
+  /api/w/{boardId}/suggestions/{id}/comment:
+    post:
+      tags: [Widget]
+      summary: Add a comment
+      description: Requires a verified author (email verification or client identification).
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/suggestionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateComment"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comment:
+                    $ref: "#/components/schemas/Comment"
+        "401":
+          description: Not verified
+
+  /api/w/{boardId}/identify:
+    post:
+      tags: [Widget]
+      summary: Identify a user
+      description: |
+        Pre-identifies a user from the client application, skipping email verification.
+        Call this when your app knows who the user is (e.g., they're logged in to your SaaS).
+
+        On the frontend, use `Marapulse.identify()` instead of calling this directly.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Identify"
+      responses:
+        "200":
+          description: User identified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  authorId:
+                    type: string
+
+  /api/w/{boardId}/reactions/vote:
+    post:
+      tags: [Reactions]
+      summary: Vote on content
+      description: |
+        Cast an upvote (+1) or downvote (-1) on any content identified by an external ID.
+        Calling with the same value again removes the vote (toggle behavior).
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReactionVote"
+      responses:
+        "200":
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionResult"
+        "429":
+          description: Rate limited (max 30 votes/minute)
+
+  /api/w/{boardId}/reactions/items:
+    get:
+      tags: [Reactions]
+      summary: Batch get reaction counts
+      description: Fetch vote counts for multiple content items at once (max 100).
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - name: ids
+          in: query
+          required: true
+          description: Comma-separated external IDs (max 100)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Map of external ID to vote counts
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/ReactionResult"
+
+  /api/w/{boardId}/reactions/item/{externalId}:
+    get:
+      tags: [Reactions]
+      summary: Get reaction counts for a single item
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - name: externalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vote counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionResult"
+
+  /api/auth/send-code:
+    post:
+      tags: [Auth]
+      summary: Send verification code
+      description: |
+        Sends a 6-digit verification code to the given email address.
+        Rate limited to 5 requests per minute per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        "429":
+          description: Rate limited
+
+  /api/auth/verify-code:
+    post:
+      tags: [Auth]
+      summary: Verify email code
+      description: |
+        Verifies the 6-digit code sent to the user's email. On success, sets a
+        `verified_author` cookie that authenticates subsequent requests.
+        Rate limited to 5 attempts per minute per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  pattern: "^\\d{6}$"
+                  description: 6-digit verification code
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  authorId:
+                    type: string
+                  name:
+                    type: string
+                    nullable: true
+                  email:
+                    type: string
+        "400":
+          description: Invalid or expired code
+        "429":
+          description: Rate limited
+
+components:
+  parameters:
+    boardId:
+      name: boardId
+      in: path
+      required: true
+      description: Board UUID
+      schema:
+        type: string
+        format: uuid
+    suggestionId:
+      name: id
+      in: path
+      required: true
+      description: Suggestion UUID
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Status:
+      type: string
+      enum: [new, under_review, planned, in_progress, done, dismissed]
+
+    SuggestionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/Status"
+        voteCount:
+          type: integer
+        commentCount:
+          type: integer
+        categoryName:
+          type: string
+          nullable: true
+        categoryEmoji:
+          type: string
+          nullable: true
+        voted:
+          type: boolean
+          description: Whether the current user has voted
+        imageUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+        body:
+          type: string
+        authorName:
+          type: string
+          nullable: true
+        authorEmail:
+          type: string
+          nullable: true
+        memberName:
+          type: string
+          nullable: true
+          description: Present if comment is from a team member
+        isOfficial:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateSuggestion:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        categoryId:
+          type: string
+          format: uuid
+
+    CreateComment:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    Identify:
+      type: object
+      required: [externalId]
+      properties:
+        externalId:
+          type: string
+          minLength: 1
+          description: Your application's user ID
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+
+    ReactionVote:
+      type: object
+      required: [externalId, value]
+      properties:
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Your content identifier (e.g., article slug, post ID)
+        label:
+          type: string
+          maxLength: 200
+          description: Human-readable label for the content
+        url:
+          type: string
+          maxLength: 2000
+          description: URL of the content being voted on
+        value:
+          type: integer
+          enum: [1, -1]
+          description: "1 for upvote, -1 for downvote"
+
+    ReactionResult:
+      type: object
+      properties:
+        upvoteCount:
+          type: integer
+        downvoteCount:
+          type: integer
+        userVote:
+          type: integer
+          nullable: true
+          description: "Current user's vote: 1, -1, or null"
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
