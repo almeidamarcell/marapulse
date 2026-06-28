@@ -1,0 +1,25 @@
+name: Production smoke test
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      base_url:
+        description: Production base URL
+        required: false
+        type: string
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run production smoke test
+        env:
+          SMOKE_BASE_URL: ${{ inputs.base_url || vars.APP_URL || 'https://marapulse.com' }}
+          SMOKE_BOARD_ID: ${{ secrets.SMOKE_BOARD_ID || '218bd8fb-7300-47c3-8c62-6a1746688729' }}
+        run: node scripts/smoke-prod.mjs

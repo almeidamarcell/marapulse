@@ -48,7 +48,28 @@ CI runs all of these on every push and pull request.
 
 ## Client-side identification (recommended for logged-in apps)
 
-If your site already knows who the user is, call `Marapulse.identify()` to skip email verification:
+If your site already knows who the user is, you can skip email verification entirely.
+
+### Option A: Script tag attributes (zero JavaScript)
+
+When rendering the page server-side, pass the logged-in user's ID:
+
+```html
+<script
+  src="https://marapulse.com/widget.js"
+  data-board="YOUR_BOARD_ID"
+  data-color="#eb7d24"
+  data-user-id="user_123"
+  data-user-email="jane@example.com"
+  data-user-name="Jane Doe"
+></script>
+```
+
+The widget calls `POST /api/w/:boardId/identify` on load and sets auth cookies before the user opens the panel.
+
+### Option B: JavaScript API
+
+Call `Marapulse.identify()` after your auth state is ready:
 
 ```javascript
 Marapulse.identify({
@@ -58,7 +79,27 @@ Marapulse.identify({
 });
 ```
 
-This uses `POST /api/w/:boardId/identify`, which sets the same cross-site cookies via `setAuthorCookies`.
+This works even before the widget iframe is opened — cookies are set via a cross-origin API call with `credentials: 'include'`.
+
+Both options use `POST /api/w/:boardId/identify`, which sets cookies via `setAuthorCookies`.
+
+## Production monitoring
+
+Widget submission auth failures (`401` on `POST /api/w/:boardId/suggestions`) are logged as structured JSON events. When more than 10 occur within 5 minutes, an alert is sent to `ALERT_WEBHOOK_URL` (optional Slack-compatible webhook).
+
+```bash
+wrangler secret put ALERT_WEBHOOK_URL
+```
+
+## Production smoke test
+
+After each deploy, run the smoke test against production:
+
+```bash
+SMOKE_BASE_URL=https://marapulse.com SMOKE_BOARD_ID=your-board-id node scripts/smoke-prod.mjs
+```
+
+GitHub Actions runs this automatically via `.github/workflows/deploy.yml` (post-deploy) and `.github/workflows/smoke-prod.yml` (every 6 hours).
 
 ## Error handling in the embed UI
 

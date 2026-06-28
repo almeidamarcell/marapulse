@@ -181,6 +181,19 @@ describe("POST /api/w/:boardId/identify", () => {
     expect(data.ok).toBe(true);
     expect(data.authorId).toBeDefined();
   });
+
+  it("sets SameSite=None cookies on HTTPS", async () => {
+    const res = await SELF.fetch(`https://marapulse.com/api/w/${BOARD_ID}/identify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ externalId: "https-identify-user", email: "id@example.com" }),
+    });
+    expect(res.status).toBe(200);
+    const cookies = res.headers.getSetCookie?.() ?? [res.headers.get("set-cookie") ?? ""];
+    const verified = cookies.find((c) => c.startsWith("verified_author="));
+    expect(verified).toMatch(/SameSite=None/i);
+    expect(verified).toMatch(/Secure/i);
+  });
 });
 
 describe("GET /api/w/:boardId/me", () => {
@@ -310,6 +323,8 @@ describe("GET /widget.js", () => {
 
     const js = await res.text();
     expect(js).toContain("data-board");
+    expect(js).toContain("data-user-id");
+    expect(js).toContain("identifyViaApi");
   });
 });
 

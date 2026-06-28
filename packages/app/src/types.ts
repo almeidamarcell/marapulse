@@ -11,6 +11,7 @@ export type Bindings = {
   STRIPE_PRICE_ID_ANNUAL: string;
   STRIPE_WEBHOOK_SECRET: string;
   APP_URL: string;
+  ALERT_WEBHOOK_URL?: string;
 };
 
 export type SessionData = {

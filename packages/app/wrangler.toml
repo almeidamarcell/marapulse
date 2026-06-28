@@ -24,3 +24,4 @@ bucket_name = "marapulse-uploads"
 # Secrets are set via: wrangler secret put <NAME>
 # Required: RESEND_API_KEY, STRIPE_SECRET_KEY, STRIPE_PRICE_ID,
 #           STRIPE_PRICE_ID_ANNUAL, STRIPE_WEBHOOK_SECRET, APP_URL
+# Optional: ALERT_WEBHOOK_URL (Slack/generic webhook for 401 spike alerts)

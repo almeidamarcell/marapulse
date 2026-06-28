@@ -7,6 +7,7 @@ import { dbMiddleware } from "./middleware/db";
 import { authMiddleware } from "./middleware/auth";
 import { sendMagicLink, sendVerificationCode, sendStatusNotification } from "./lib/email";
 import { setAuthorCookies } from "./lib/cookies";
+import { recordSuggestionAuthFailure } from "./lib/monitoring";
 import { BoardHome } from "./pages/home";
 import { SuggestionDetail } from "./pages/suggestion";
 import { LoginPage } from "./pages/login";
@@ -43,6 +44,23 @@ app.use("*", async (c, next) => {
     }
   }
   return next();
+});
+
+app.get("/health", (c) => c.json({ ok: true }));
+
+// CORS for cross-origin widget API usage (embed on customer sites).
+app.use("/api/w/*", async (c, next) => {
+  const origin = c.req.header("Origin");
+  if (origin) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    c.header("Access-Control-Allow-Headers", "Content-Type");
+    c.header("Access-Control-Allow-Credentials", "true");
+  }
+  if (c.req.method === "OPTIONS") {
+    return c.body(null, 204);
+  }
+  await next();
 });
 
 // --- Helpers ---
@@ -1058,13 +1076,20 @@ app.post("/api/w/:boardId/identify", async (c) => {
 });
 
 app.post("/api/w/:boardId/suggestions", async (c) => {
+  const boardId = c.req.param("boardId");
   const verifiedAuthor = getCookie(c, "verified_author");
   if (!verifiedAuthor) {
+    await recordSuggestionAuthFailure(c, {
+      boardId,
+      origin: c.req.header("origin"),
+      referer: c.req.header("referer"),
+      hasVerifiedCookie: false,
+      secure: c.req.url.startsWith("https"),
+    });
     return c.json({ error: "Authentication required" }, 401);
   }
 
   const db = c.get("db");
-  const boardId = c.req.param("boardId");
 
   const board = await db.select({ id: boards.id }).from(boards).where(eq(boards.id, boardId)).get();
   if (!board) {
@@ -1131,23 +1156,6 @@ app.post("/api/w/:boardId/suggestions/:id/comment", async (c) => {
 // =====================
 // REACTIONS API
 // =====================
-
-// CORS preflight + headers for cross-origin widget usage.
-// Security note: This intentionally allows any origin because the reactions widget
-// is embedded on customer websites. Credentials (cookies) are limited to fingerprint
-// tracking cookies (SameSite=None, Secure) — not admin session cookies. The fingerprint
-// is per-origin by design, so cross-origin access does not grant elevated privileges.
-app.use("/api/w/:boardId/reactions/*", async (c, next) => {
-  const origin = c.req.header("Origin") || "*";
-  c.header("Access-Control-Allow-Origin", origin);
-  c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  c.header("Access-Control-Allow-Headers", "Content-Type");
-  c.header("Access-Control-Allow-Credentials", "true");
-  if (c.req.method === "OPTIONS") {
-    return c.body(null, 204);
-  }
-  await next();
-});
 
 app.post("/api/w/:boardId/reactions/vote", async (c) => {
   const db = c.get("db");
@@ -1626,6 +1634,7 @@ document.addEventListener('alpine:init', () => {
         }
       } catch {}
       window.addEventListener('message', (e) => {
+        if (e.origin !== window.location.origin) return;
         if (e.data?.type === 'marapulse:identify') {
           this.handleIdentify(e.data.payload);
         }
@@ -1748,12 +1757,25 @@ document.addEventListener('alpine:init', () => {
       } finally { this.verifySending = false; }
     },
     async handleIdentify(payload) {
-      const res = await fetch(API + '/identify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) { this.identified = true; }
+      this.submitError = '';
+      try {
+        const res = await fetch(API + '/identify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          this.submitError = d.error || 'Failed to identify user';
+          this.identified = false;
+          return;
+        }
+        this.identified = true;
+        this.verifyStep = 'initial';
+      } catch {
+        this.submitError = 'Failed to identify user';
+        this.identified = false;
+      }
     }
   }));
 });
@@ -1773,6 +1795,31 @@ app.get("/widget.js", (c) => {
 
   var isOpen = false;
   var iframe = null;
+
+  function deliverIdentity() {
+    if (iframe && iframe.contentWindow && window._marapulseIdentity) {
+      iframe.contentWindow.postMessage({ type: 'marapulse:identify', payload: window._marapulseIdentity }, api);
+    }
+  }
+
+  function identifyViaApi(payload) {
+    return fetch(api + '/api/w/' + boardId + '/identify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  var userId = s.getAttribute('data-user-id');
+  if (userId) {
+    window._marapulseIdentity = {
+      externalId: userId,
+      email: s.getAttribute('data-user-email') || undefined,
+      name: s.getAttribute('data-user-name') || undefined
+    };
+    identifyViaApi(window._marapulseIdentity).catch(function(){});
+  }
 
   // Create trigger button
   var btn = document.createElement('button');
@@ -1800,28 +1847,24 @@ app.get("/widget.js", (c) => {
     }
     document.body.appendChild(iframe);
     isOpen = true;
+    iframe.addEventListener('load', deliverIdentity);
+    deliverIdentity();
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>';
   };
 
   document.body.appendChild(btn);
 
-  // Marapulse.identify() API
+  // Marapulse.identify() API — for logged-in sites, call on page load to skip email verification
   window.Marapulse = {
     identify: function(payload) {
-      if (iframe) {
+      window._marapulseIdentity = payload;
+      if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({ type: 'marapulse:identify', payload: payload }, api);
       } else {
-        // Store for when iframe opens
-        window._marapulseIdentity = payload;
-        // Also auto-open to identify
+        identifyViaApi(payload).catch(function(){});
       }
     }
   };
-
-  // If identity was set before widget loaded
-  if (window._marapulseIdentity && iframe) {
-    iframe.contentWindow.postMessage({ type: 'marapulse:identify', payload: window._marapulseIdentity }, api);
-  }
 })();`;
 
   return new Response(js, {
@@ -1993,12 +2036,23 @@ code{background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:13px}
   <p><strong>Color:</strong> <code>${color}</code></p>
   <p>Click the floating button in the bottom-right corner to open the widget.</p>
 </div>
-<p>To test <code>Marapulse.identify()</code>, open the browser console and run:</p>
+<div class="card">
+  <p><strong>Logged-in user simulation</strong></p>
+  <p style="margin-top:8px">Click below to identify as a test user (skips email verification):</p>
+  <button id="simulate-login" style="margin-top:12px;padding:10px 16px;border-radius:8px;border:none;background:#2563EB;color:#fff;font-weight:600;cursor:pointer">Simulate logged-in user</button>
+</div>
+<p>Or open the browser console and run:</p>
 <pre style="background:#f5f5f5;padding:12px;border-radius:8px;font-size:13px">Marapulse.identify({
   externalId: "user_123",
   email: "test@example.com",
   name: "Test User"
 });</pre>
+<script>
+document.getElementById('simulate-login').onclick = function() {
+  Marapulse.identify({ externalId: 'demo_user', email: 'demo@example.com', name: 'Demo User' });
+  this.textContent = 'Identified! Open the widget to submit.';
+};
+</script>
 <script src="/widget.js" data-board="${boardId}" data-color="${color}"></script>
 </body>
 </html>`);
