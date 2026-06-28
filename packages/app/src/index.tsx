@@ -73,6 +73,18 @@ async function checkRateLimit(kv: KVNamespace, key: string, limit: number, windo
   return true;
 }
 
+/** Cookie options for widget embeds loaded in third-party iframes. */
+function crossSiteCookieOptions(c: { req: { url: string } }) {
+  const secure = c.req.url.startsWith("https");
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: secure ? "None" as const : "Lax" as const,
+    secure,
+    maxAge: 60 * 60 * 24 * 365,
+  };
+}
+
 // =====================
 // STRIPE WEBHOOK (before auth, uses raw body)
 // =====================
@@ -360,13 +372,22 @@ app.post("/api/auth/verify-code", async (c) => {
 
   const db = c.get("db");
 
-  // Find the board to determine workspace (look for any board)
-  const board = await db.select().from(boards).limit(1).get();
-  if (!board) {
+  let workspaceId: string | undefined;
+  if (parsed.data.boardId) {
+    const board = await db
+      .select({ workspaceId: boards.workspaceId })
+      .from(boards)
+      .where(eq(boards.id, parsed.data.boardId))
+      .get();
+    workspaceId = board?.workspaceId;
+  }
+  if (!workspaceId) {
+    const board = await db.select({ workspaceId: boards.workspaceId }).from(boards).limit(1).get();
+    workspaceId = board?.workspaceId;
+  }
+  if (!workspaceId) {
     return c.json({ error: "No board found" }, 500);
   }
-
-  const workspaceId = board.workspaceId;
   const fp = getCookie(c, "fp") ?? getFingerprint(c);
 
   // Find or create author
@@ -418,22 +439,9 @@ app.post("/api/auth/verify-code", async (c) => {
     }
   }
 
-  // Set verified author cookie
-  setCookie(c, "verified_author", author.id, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "Lax",
-    maxAge: 60 * 60 * 24 * 365,
-    secure: c.req.url.startsWith("https"),
-  });
-
-  // Also update fp cookie to use author.id for future votes
-  setCookie(c, "fp", author.id, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "Lax",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  const cookieOpts = crossSiteCookieOptions(c);
+  setCookie(c, "verified_author", author.id, cookieOpts);
+  setCookie(c, "fp", author.id, cookieOpts);
 
   return c.json({ ok: true, authorId: author.id, name: author.name, email: author.email });
 });
@@ -796,6 +804,30 @@ app.get("/api/w/:boardId", async (c) => {
   });
 });
 
+app.get("/api/w/:boardId/me", async (c) => {
+  const verifiedAuthor = getCookie(c, "verified_author");
+  if (!verifiedAuthor) {
+    return c.json({ identified: false });
+  }
+
+  const db = c.get("db");
+  const author = await db
+    .select({ id: authors.id, email: authors.email, name: authors.name })
+    .from(authors)
+    .where(eq(authors.id, verifiedAuthor))
+    .get();
+
+  if (!author) {
+    return c.json({ identified: false });
+  }
+
+  return c.json({
+    identified: true,
+    email: author.email,
+    name: author.name,
+  });
+});
+
 app.get("/api/w/:boardId/suggestions", async (c) => {
   const db = c.get("db");
   const boardId = c.req.param("boardId");
@@ -1033,19 +1065,9 @@ app.post("/api/w/:boardId/identify", async (c) => {
     }).where(eq(authors.id, author.id));
   }
 
-  // Set cookies for identified user
-  setCookie(c, "verified_author", author.id, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "None",
-    maxAge: 60 * 60 * 24 * 365,
-  });
-  setCookie(c, "fp", author.id, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "None",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  const cookieOpts = crossSiteCookieOptions(c);
+  setCookie(c, "verified_author", author.id, cookieOpts);
+  setCookie(c, "fp", author.id, cookieOpts);
 
   return c.json({ ok: true, authorId: author.id });
 });
@@ -1556,6 +1578,7 @@ ${showBadge ? '      <div class="powered-by"><a href="https://marapulse.com" tar
           <input class="suggest-input" type="text" placeholder="Title" x-model="suggestTitle" />
           <textarea class="suggest-input suggest-textarea" placeholder="Description (optional)" x-model="suggestDesc"></textarea>
           <button class="btn-primary" x-on:click="submitSuggestion()" :disabled="!suggestTitle.trim()">Submit</button>
+          <p class="verify-error" x-show="submitError" x-text="submitError"></p>
         </div>
       </template>
       <template x-if="!identified && verifyStep === 'initial'">
@@ -1605,9 +1628,17 @@ document.addEventListener('alpine:init', () => {
     verifyEmail: '',
     verifyCode: '',
     verifyError: '',
+    submitError: '',
     verifySending: false,
-    init() {
+    async init() {
       this.fetchSuggestions();
+      try {
+        const meRes = await fetch(API + '/me');
+        if (meRes.ok) {
+          const me = await meRes.json();
+          if (me.identified) this.identified = true;
+        }
+      } catch {}
       window.addEventListener('message', (e) => {
         if (e.data?.type === 'marapulse:identify') {
           this.handleIdentify(e.data.payload);
@@ -1670,16 +1701,26 @@ document.addEventListener('alpine:init', () => {
       this.commentBody = '';
       this.openDetail(this.current.id);
     },
-    openSuggest() { this.view = 'suggest'; },
+    openSuggest() { this.view = 'suggest'; this.submitError = ''; },
     async submitSuggestion() {
       if (!this.suggestTitle.trim()) return;
-      await fetch(API + '/suggestions', {
+      this.submitError = '';
+      const res = await fetch(API + '/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: this.suggestTitle, description: this.suggestDesc || undefined })
       });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        this.submitError = d.error === 'Authentication required'
+          ? 'Please verify your email again to submit.'
+          : (d.error || 'Failed to submit suggestion');
+        if (d.error === 'Authentication required') this.identified = false;
+        return;
+      }
       this.suggestTitle = '';
       this.suggestDesc = '';
+      this.submitError = '';
       this.view = 'list';
       this.fetchSuggestions();
     },
@@ -1690,7 +1731,7 @@ document.addEventListener('alpine:init', () => {
         const res = await fetch('/api/auth/send-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: this.verifyEmail })
+          body: JSON.stringify({ email: this.verifyEmail, boardId: BOARD_ID })
         });
         if (!res.ok) { this.verifyError = 'Failed to send code'; return; }
         this.verifyStep = 'code';
@@ -1703,7 +1744,7 @@ document.addEventListener('alpine:init', () => {
         const res = await fetch('/api/auth/verify-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: this.verifyEmail, code: this.verifyCode })
+          body: JSON.stringify({ email: this.verifyEmail, code: this.verifyCode, boardId: BOARD_ID })
         });
         if (!res.ok) { const d = await res.json(); this.verifyError = d.error || 'Invalid code'; return; }
         this.identified = true;
@@ -2234,6 +2275,7 @@ app.get("/:boardSlug", async (c) => {
   return c.html(
     <BoardHome
       board={{
+        id: board.id,
         name: board.name,
         slug: board.slug,
         description: board.description,
@@ -2364,6 +2406,7 @@ app.get("/:boardSlug/:suggestionId", async (c) => {
   return c.html(
     <SuggestionDetail
       board={{
+        id: board.id,
         name: board.name,
         slug: board.slug,
         color: board.color,
