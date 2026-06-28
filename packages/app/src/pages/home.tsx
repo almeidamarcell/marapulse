@@ -26,6 +26,7 @@ type Category = {
 
 type BoardHomeProps = {
   board: {
+    id: string;
     name: string;
     slug: string;
     description: string | null;
@@ -233,6 +234,7 @@ export const BoardHome: FC<BoardHomeProps> = ({ board, suggestions, activeStatus
         <script>
           document.addEventListener('alpine:init', () => {
             const isVerified = ${isVerified};
+            const boardId = '${board.id}';
 
             Alpine.data('suggestForm', () => ({
               openForm() {
@@ -255,7 +257,7 @@ export const BoardHome: FC<BoardHomeProps> = ({ board, suggestions, activeStatus
                   const res = await fetch('/api/auth/send-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: this.email })
+                    body: JSON.stringify({ email: this.email, boardId })
                   });
                   if (!res.ok) { this.error = 'Failed to send code'; return; }
                   this.step = 'verify-code';
@@ -268,7 +270,7 @@ export const BoardHome: FC<BoardHomeProps> = ({ board, suggestions, activeStatus
                   const res = await fetch('/api/auth/verify-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: this.email, code: this.code })
+                    body: JSON.stringify({ email: this.email, code: this.code, boardId })
                   });
                   if (!res.ok) {
                     const d = await res.json();

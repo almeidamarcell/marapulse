@@ -17,11 +17,13 @@ export const updateStatusSchema = z.object({
 
 export const sendCodeSchema = z.object({
   email: z.string().email(),
+  boardId: z.string().uuid().optional(),
 });
 
 export const verifyCodeSchema = z.object({
   email: z.string().email(),
   code: z.string().length(6),
+  boardId: z.string().uuid().optional(),
 });
 
 export const loginSchema = z.object({

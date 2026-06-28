@@ -183,6 +183,57 @@ describe("POST /api/w/:boardId/identify", () => {
   });
 });
 
+describe("GET /api/w/:boardId/me", () => {
+  it("returns identified false without auth cookie", async () => {
+    const res = await SELF.fetch(`http://localhost/api/w/${BOARD_ID}/me`);
+    expect(res.status).toBe(200);
+    const data = await res.json() as any;
+    expect(data.identified).toBe(false);
+  });
+
+  it("returns identified true after identify", async () => {
+    const identifyRes = await SELF.fetch(`http://localhost/api/w/${BOARD_ID}/identify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ externalId: "me_test_user", email: "me@example.com" }),
+    });
+    const cookies = identifyRes.headers.getSetCookie?.() ?? [identifyRes.headers.get("set-cookie") ?? ""];
+    const cookieHeader = cookies.join("; ");
+
+    const res = await SELF.fetch(`http://localhost/api/w/${BOARD_ID}/me`, {
+      headers: { Cookie: cookieHeader },
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as any;
+    expect(data.identified).toBe(true);
+    expect(data.email).toBe("me@example.com");
+  });
+});
+
+describe("POST /api/auth/verify-code", () => {
+  it("creates author in the correct workspace when boardId is provided", async () => {
+    const email = "widget-user@example.com";
+    await env.KV.put(`code:${email}`, "123456", { expirationTtl: 600 });
+
+    const res = await SELF.fetch("http://localhost/api/auth/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code: "123456", boardId: BOARD_ID }),
+    });
+    expect(res.status).toBe(200);
+
+    const cookies = res.headers.getSetCookie?.() ?? [res.headers.get("set-cookie") ?? ""];
+    const cookieHeader = cookies.join("; ");
+
+    const createRes = await SELF.fetch(`http://localhost/api/w/${BOARD_ID}/suggestions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookieHeader },
+      body: JSON.stringify({ title: "Widget submission", description: "From email verify" }),
+    });
+    expect(createRes.status).toBe(201);
+  });
+});
+
 describe("GET /embed/:boardId", () => {
   it("returns standalone HTML with Alpine.js", async () => {
     const res = await SELF.fetch(`http://localhost/embed/${BOARD_ID}`);
