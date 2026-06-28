@@ -6,6 +6,7 @@ import { loginSchema, updateStatusSchema, sendCodeSchema, verifyCodeSchema, crea
 import { dbMiddleware } from "./middleware/db";
 import { authMiddleware } from "./middleware/auth";
 import { sendMagicLink, sendVerificationCode, sendStatusNotification } from "./lib/email";
+import { setAuthorCookies } from "./lib/cookies";
 import { BoardHome } from "./pages/home";
 import { SuggestionDetail } from "./pages/suggestion";
 import { LoginPage } from "./pages/login";
@@ -71,18 +72,6 @@ async function checkRateLimit(kv: KVNamespace, key: string, limit: number, windo
   if (count >= limit) return false;
   await kv.put(key, String(count + 1), { expirationTtl: windowSecs });
   return true;
-}
-
-/** Cookie options for widget embeds loaded in third-party iframes. */
-function crossSiteCookieOptions(c: { req: { url: string } }) {
-  const secure = c.req.url.startsWith("https");
-  return {
-    path: "/",
-    httpOnly: true,
-    sameSite: secure ? "None" as const : "Lax" as const,
-    secure,
-    maxAge: 60 * 60 * 24 * 365,
-  };
 }
 
 // =====================
@@ -439,9 +428,7 @@ app.post("/api/auth/verify-code", async (c) => {
     }
   }
 
-  const cookieOpts = crossSiteCookieOptions(c);
-  setCookie(c, "verified_author", author.id, cookieOpts);
-  setCookie(c, "fp", author.id, cookieOpts);
+  setAuthorCookies(c, author.id);
 
   return c.json({ ok: true, authorId: author.id, name: author.name, email: author.email });
 });
@@ -1065,9 +1052,7 @@ app.post("/api/w/:boardId/identify", async (c) => {
     }).where(eq(authors.id, author.id));
   }
 
-  const cookieOpts = crossSiteCookieOptions(c);
-  setCookie(c, "verified_author", author.id, cookieOpts);
-  setCookie(c, "fp", author.id, cookieOpts);
+  setAuthorCookies(c, author.id);
 
   return c.json({ ok: true, authorId: author.id });
 });
@@ -1546,6 +1531,7 @@ ${showBadge ? '      <div class="powered-by"><a href="https://marapulse.com" tar
       <div class="comment-form" x-show="identified">
         <textarea class="comment-input" rows="2" placeholder="Add a comment..." x-model="commentBody"></textarea>
         <button class="comment-submit" x-on:click="postComment()">Comment</button>
+        <p class="verify-error" x-show="submitError" x-text="submitError"></p>
       </div>
       <div class="verify-flow" x-show="!identified && verifyStep === 'initial'">
         <p class="verify-text"><a href="#" x-on:click.prevent="verifyStep='email'" style="color:var(--ink);font-weight:500">Verify your email</a> to comment</p>
@@ -1693,12 +1679,22 @@ document.addEventListener('alpine:init', () => {
     },
     async postComment() {
       if (!this.commentBody.trim()) return;
-      await fetch(API + '/suggestions/' + this.current.id + '/comment', {
+      this.submitError = '';
+      const res = await fetch(API + '/suggestions/' + this.current.id + '/comment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ body: this.commentBody })
       });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        this.submitError = d.error === 'Authentication required'
+          ? 'Please verify your email again to comment.'
+          : (d.error || 'Failed to post comment');
+        if (d.error === 'Authentication required') this.identified = false;
+        return;
+      }
       this.commentBody = '';
+      this.submitError = '';
       this.openDetail(this.current.id);
     },
     openSuggest() { this.view = 'suggest'; this.submitError = ''; },
