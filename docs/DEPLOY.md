@@ -81,6 +81,27 @@ npm run deploy
 cd packages/app && wrangler deploy
 ```
 
+Or trigger the GitHub Actions workflow: **Actions → Deploy** (manual).
+
+## Post-deploy checklist
+
+Complete these after merging the production smoke test and monitoring changes:
+
+- [ ] **GitHub Actions secrets** — repo → Settings → Secrets and variables → Actions:
+  - `CLOUDFLARE_API_TOKEN` — Cloudflare API token with Workers deploy permission
+  - `SMOKE_BOARD_ID` — board UUID used by the smoke test (e.g. your landing page board)
+- [ ] **GitHub Actions variable** (optional) — Settings → Secrets and variables → Actions → Variables:
+  - `APP_URL` — production URL (defaults to `https://marapulse.com` if unset)
+- [ ] **Worker secret for alerts** (optional):
+  ```bash
+  wrangler secret put ALERT_WEBHOOK_URL
+  ```
+  Slack-compatible webhook URL; alerts when widget submission 401s spike (≥10 in 5 min).
+- [ ] **Deploy and verify smoke test**:
+  - Run **Actions → Deploy**, or deploy manually with `wrangler deploy`
+  - Confirm smoke passes: `SMOKE_BASE_URL=https://marapulse.com node scripts/smoke-prod.mjs`
+  - Scheduled smoke runs every 6 hours via **Actions → Production smoke test**
+
 ## 6. First Run
 
 Visit your deployed URL. Since no workspaces exist, you'll see the onboarding page:
@@ -100,6 +121,15 @@ Visit your deployed URL. Since no workspaces exist, you'll see the onboarding pa
 | `STRIPE_PRICE_ID_ANNUAL` | Stripe annual Price ID (`price_...`) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
 | `APP_URL` | Your production URL (e.g., `https://app.marapulse.com`) |
+| `ALERT_WEBHOOK_URL` | Optional Slack-compatible webhook for widget 401 spike alerts |
+
+## GitHub Actions secrets (for deploy + smoke)
+
+| Secret / variable | Description |
+|-------------------|-------------|
+| `CLOUDFLARE_API_TOKEN` | API token for the Deploy workflow |
+| `SMOKE_BOARD_ID` | Board UUID for production smoke tests |
+| `APP_URL` (variable) | Production base URL; defaults to `https://marapulse.com` |
 
 ## Custom Domain
 
