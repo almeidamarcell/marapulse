@@ -121,6 +121,10 @@ export const SettingsPage: FC<SettingsProps> = ({ board, categories, plan, succe
           ></button>
         </div>`)}
 
+        <p style="font-size:13px;color:#666;margin-top:12px">
+          <strong>Logged-in users:</strong> add <code>data-user-id</code>, <code>data-user-email</code>, and <code>data-user-name</code> to skip email verification, or call <code>Marapulse.identify()</code> from your app.
+        </p>
+
         <hr style="border:none;border-top:1px solid #e8e8e8;margin:24px 0" />
 
         <h2 id="reactions" style="font-size:16px;font-weight:700;margin-bottom:12px">Reactions embed</h2>
