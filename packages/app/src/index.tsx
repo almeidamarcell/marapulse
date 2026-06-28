@@ -12,6 +12,8 @@ import { LoginPage } from "./pages/login";
 import { SettingsPage } from "./pages/settings";
 import { ReactionsPage } from "./pages/reactions";
 import { landingPageHtml } from "./pages/landing";
+import { BlogIndex, BlogPostPage } from "./pages/blog";
+import { BLOG_POSTS, getPostBySlug } from "./content/posts";
 import type { Bindings, Variables } from "./types";
 import type { Status } from "@marapulse/shared";
 
@@ -2104,6 +2106,16 @@ app.post("/settings/billing", async (c) => {
 
 app.get("/", (c) => {
   return c.html(landingPageHtml());
+});
+
+app.get("/blog", (c) => {
+  return c.html(<BlogIndex posts={BLOG_POSTS} />);
+});
+
+app.get("/blog/:slug", (c) => {
+  const post = getPostBySlug(c.req.param("slug"));
+  if (!post) return c.notFound();
+  return c.html(<BlogPostPage post={post} />);
 });
 
 app.get("/setup", async (c) => {

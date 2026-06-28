@@ -13,6 +13,7 @@
     "@marapulse/shared": "workspace:*",
     "drizzle-orm": "^0.38.0",
     "hono": "^4.6.0",
+    "marked": "^18.0.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

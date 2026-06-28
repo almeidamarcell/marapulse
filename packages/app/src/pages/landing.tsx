@@ -207,6 +207,7 @@ img,svg{display:block;max-width:100%}
 <nav class="nav" id="nav">
   <a href="/" class="nav-logo">Marapulse</a>
   <div class="nav-links">
+    <a href="/blog" class="nav-link">Blog</a>
     <a href="#features" class="nav-link">Features</a>
     <a href="#pricing" class="nav-link">Pricing</a>
     <a href="/login" class="nav-link">Log in</a>
@@ -465,6 +466,7 @@ img,svg{display:block;max-width:100%}
 <footer class="footer">
   <div class="footer-links">
     <a href="https://github.com/almeidamarcell/marapulse" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <a href="/blog">Blog</a>
     <a href="#features">Features</a>
     <a href="#pricing">Pricing</a>
     <a href="/login">Log in</a>
