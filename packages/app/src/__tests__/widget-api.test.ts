@@ -232,6 +232,51 @@ describe("POST /api/auth/verify-code", () => {
     });
     expect(createRes.status).toBe(201);
   });
+
+  it("sets SameSite=None cookies on HTTPS (required for third-party widget iframes)", async () => {
+    const email = "https-cookie@example.com";
+    await env.KV.put(`code:${email}`, "654321", { expirationTtl: 600 });
+
+    const res = await SELF.fetch("https://marapulse.com/api/auth/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code: "654321", boardId: BOARD_ID }),
+    });
+    expect(res.status).toBe(200);
+
+    const cookies = res.headers.getSetCookie?.() ?? [res.headers.get("set-cookie") ?? ""];
+    const verified = cookies.find((c) => c.startsWith("verified_author="));
+    expect(verified).toBeDefined();
+    expect(verified).toMatch(/SameSite=None/i);
+    expect(verified).toMatch(/Secure/i);
+  });
+
+  it("full embed flow: verify email, submit suggestion, appears in list", async () => {
+    const email = "embed-flow@example.com";
+    const title = "Embed flow regression test";
+    await env.KV.put(`code:${email}`, "111111", { expirationTtl: 600 });
+
+    const verifyRes = await SELF.fetch("http://localhost/api/auth/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code: "111111", boardId: BOARD_ID }),
+    });
+    const cookies = verifyRes.headers.getSetCookie?.() ?? [verifyRes.headers.get("set-cookie") ?? ""];
+    const cookieHeader = cookies.join("; ");
+
+    const createRes = await SELF.fetch(`http://localhost/api/w/${BOARD_ID}/suggestions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookieHeader },
+      body: JSON.stringify({ title }),
+    });
+    expect(createRes.status).toBe(201);
+
+    const listRes = await SELF.fetch(`http://localhost/api/w/${BOARD_ID}/suggestions`, {
+      headers: { Cookie: cookieHeader },
+    });
+    const list = await listRes.json() as any;
+    expect(list.suggestions.some((s: { title: string }) => s.title === title)).toBe(true);
+  });
 });
 
 describe("GET /embed/:boardId", () => {
@@ -243,6 +288,17 @@ describe("GET /embed/:boardId", () => {
     const html = await res.text();
     expect(html).toContain("alpine");
     expect(html).toContain("Acme Feedback");
+  });
+
+  it("embed page checks API responses and passes boardId through auth", async () => {
+    const res = await SELF.fetch(`http://localhost/embed/${BOARD_ID}`);
+    const html = await res.text();
+
+    // Regression guards for third-party iframe submission bug
+    expect(html).toContain("if (!res.ok)");
+    expect(html).toContain("submitError");
+    expect(html).toContain("boardId: BOARD_ID");
+    expect(html).toContain("API + '/me'");
   });
 });
 
